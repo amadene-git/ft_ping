@@ -16,27 +16,32 @@ CFLAGS = -Wall -Wextra -Werror
 # Répertoires
 SRC_DIR = src
 OBJ_DIR = obj
-INC_DIR = include
+LIB_DIR = ../lib
+INCLUDES = -Iinclude -I../utils/include
 
-#Fichiers
+# Fichiers
 SRCS =	$(SRC_DIR)/main.c
 OBJS =	$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
+LIBS =	$(LIB_DIR)/libutils.a
 
 
 
-NAME = ft_ping
+NAME = 			ft_ping
 
-all:			$(OBJ_DIR) $(NAME)
+all:			$(LIBS) $(OBJ_DIR) $(NAME)
+
+$(LIBS):
+					$(MAKE) -C ../utils 
 
 $(OBJ_DIR):
 					mkdir -p $(OBJ_DIR)
 
 
 $(NAME):		$(OBJS)
-					$(CC) $(OBJS) -o $@
+					$(CC) $(OBJS) -L$(LIB_DIR) -lutils -o $@
 
 $(OBJ_DIR)/%.o:	$(SRC_DIR)/%.c
-					$(CC) $(CFLAGS) -c $< -I ${INC_DIR} -o $@
+					$(CC) $(CFLAGS) -c $< ${INCLUDES} -o $@
 
 
 
@@ -46,4 +51,4 @@ fclean:			clean
 					rm -rf $(NAME)
 re:				fclean all
 
-.PHONY: all clean fclean re $(NAME)
+.PHONY: all clean fclean re

@@ -1,11 +1,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <errno.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 
 void exitError(const char* msg);
+void hexDump(const uint8_t* buffer, const size_t size);
 
 #endif

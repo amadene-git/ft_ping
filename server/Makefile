@@ -16,7 +16,7 @@ CFLAGS = -Wall -Wextra -Werror
 # Répertoires
 SRC_DIR = src
 OBJ_DIR = obj
-INC_DIR = include
+INCLUDES = -Iinclude -I../utils/include
 LIB_DIR = ../lib
 
 # Fichiers
@@ -40,7 +40,7 @@ $(NAME):		$(OBJS)
 					$(CC) $(OBJS) -L$(LIB_DIR) -lutils -o $@
 
 $(OBJ_DIR)/%.o:	$(SRC_DIR)/%.c
-					$(CC) $(CFLAGS) -c $< -I ${INC_DIR} -o $@
+					$(CC) $(CFLAGS) -c $< ${INCLUDES} -o $@
 
 
 clean:
