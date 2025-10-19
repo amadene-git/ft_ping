@@ -1,5 +1,5 @@
-#ifndef PING_SERVER_H
-#define PING_SERVER_H
+#ifndef FT_PING_H
+#define FT_PING_H
 
 #include <arpa/inet.h>
 #include <ctype.h>
@@ -23,11 +23,11 @@ struct in_addr {
 };
 */
 
-typedef struct s_pingServer {
+typedef struct s_pingClient {
   int _sockfd;
   struct sockaddr_in _sockAddr;
   socklen_t _socklen;
   char _ipAddress[16];
-} t_pingServer;
+} t_pingClient;
 
 #endif

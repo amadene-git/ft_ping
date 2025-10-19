@@ -17,30 +17,27 @@ CFLAGS = -Wall -Wextra -Werror
 SRC_DIR = src
 OBJ_DIR = obj
 INC_DIR = include
-LIB_DIR = ../lib
 
-# Fichiers
+#Fichiers
 SRCS =	$(SRC_DIR)/main.c
 OBJS =	$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
-LIBS =	$(LIB_DIR)/libutils.a
 
 
 
-NAME = pingServer
+NAME = ft_ping
 
-all:			$(LIBS) $(OBJ_DIR) $(NAME)
+all:			$(OBJ_DIR) $(NAME)
 
-$(LIBS):
-					$(MAKE) -C ../utils
 $(OBJ_DIR):
 					mkdir -p $(OBJ_DIR)
 
 
 $(NAME):		$(OBJS)
-					$(CC) $(OBJS) -L$(LIB_DIR) -lutils -o $@
+					$(CC) $(OBJS) -o $@
 
 $(OBJ_DIR)/%.o:	$(SRC_DIR)/%.c
 					$(CC) $(CFLAGS) -c $< -I ${INC_DIR} -o $@
+
 
 
 clean:
