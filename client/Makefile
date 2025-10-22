@@ -20,7 +20,7 @@ LIB_DIR = ../lib
 INCLUDES = -Iinclude -I../utils/include
 
 # Fichiers
-SRCS =	$(SRC_DIR)/main.c
+SRCS =	$(SRC_DIR)/ft_ping.c
 OBJS =	$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 LIBS =	$(LIB_DIR)/libutils.a
 
