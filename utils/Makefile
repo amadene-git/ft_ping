@@ -1,34 +1,40 @@
-# === Makefile du dossier utils ===
-
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror
+NAME = libutils.a
 
 SRC_DIR = src
-OBJ_DIR = obj
+OBJ_DIR = objs
 INC_DIR = include
-LIB_DIR = ../lib
-LIB_NAME = libutils.a
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
-LIB = $(LIB_DIR)/$(LIB_NAME)
+SRCS =	$(SRC_DIR)/rawSocket.c \
+		$(SRC_DIR)/utils.c
 
-all: $(LIB)
+OBJS =	$(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+DEPS =	$(OBJS:.o=.d)
 
-# Création de la lib statique
-$(LIB):				$(OBJS)
-						mkdir -p $(LIB_DIR)
-						ar rcs $@ $^
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror -MMD -MP
+INCLUDES = -I $(INC_DIR)
 
-$(OBJ_DIR)/%.o:		$(SRC_DIR)/%.c
-						mkdir -p $(dir $@)
-						$(CC) $(CFLAGS) -I $(INC_DIR) -c $< -o $@
+
+all: $(NAME)
+
+$(NAME): $(OBJ_DIR) $(OBJS)
+	ar rcs $@ $(OBJS)
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+-include $(DEPS)
 
 
 clean:
-					rm -rf $(OBJ_DIR)
-fclean:			clean
-					rm -rf $(LIB)
-re:				fclean all
+	rm -rf $(OBJ_DIR)
 
-.PHONY: all clean fclean re 
+fclean: clean
+	rm -f $(NAME)
+
+re: fclean all
+
+.PHONY: all clean fclean re
