@@ -20,6 +20,7 @@ typedef struct s_rawSocket {
   struct sockaddr_in _sockAddr;
   socklen_t _socklen;
   char _ipAddress[16];
+  char* _hostname;
 } t_rawSocket;
 
 t_rawSocket* initializeRawSocket(const char* host, t_rawSocket* server);

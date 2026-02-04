@@ -28,6 +28,7 @@ t_rawSocket* initializeRawSocket(const char* host, t_rawSocket* server) {
   resolveDNS(host, server);
   server->_sockAddr.sin_family = AF_INET;
   server->_socklen = sizeof(struct sockaddr_in);
+  server->_hostname = strdup(host);
 
   //   if (bind(server->_sockfd, (struct sockaddr*)(&server->_sockAddr),
   //            server->_socklen) == -1) {
@@ -36,8 +37,7 @@ t_rawSocket* initializeRawSocket(const char* host, t_rawSocket* server) {
   return server;
 }
 
-int resolveDNS(const char* host,
-               t_rawSocket* server) {
+int resolveDNS(const char* host, t_rawSocket* server) {
   struct addrinfo hints;
   struct addrinfo* result = NULL;
   memset(&hints, 0, sizeof(struct addrinfo));
@@ -45,13 +45,10 @@ int resolveDNS(const char* host,
   hints.ai_socktype = SOCK_RAW;     /* Datagram socket */
   hints.ai_protocol = IPPROTO_ICMP; /* Any protocol */
 
-  myLog("try resolve DNS: %s\n", host);
-
   int ret = getaddrinfo(host, NULL, &hints, &result);
 
   if (ret != 0 || result == NULL) {
-    myLog("getaddrinfo(): %s\n", gai_strerror(ret));
-		pingLog("ft_ping: %s: Nom ou service inconnu\n", host);
+    pingLog("ft_ping: %s: Nom ou service inconnu\n", host);
     exitError("get address failed");
   }
 
@@ -61,7 +58,6 @@ int resolveDNS(const char* host,
 
   // (void)server;
   strncpy(&server->_ipAddress[0], &str_ip[0], 15);
-  myLog("resolve dns make: %s -> %s\n", host, server->_ipAddress);
 
   return 0;
 }

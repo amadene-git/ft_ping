@@ -1,10 +1,13 @@
 #include <ft_ping.h>
-#include <utils.h>
 #include <rawSocket.h>
+#include <utils.h>
 
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
+#include <signal.h>
 #include <stdio.h>
 #include <strings.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 void* buildIcmpHeader(void* hdrPtr) {
@@ -40,28 +43,39 @@ void insertChecksum(void* hdrPtr, uint16_t checksum) {
   header->checksum = checksum;
 }
 
-// static uint16_t icmp_checksum(const void* buf, int len) {
-//   const uint16_t* data = buf;
-//   uint32_t sum = 0;
+static uint16_t icmp_checksum(const void* buf, int len) {
+  const uint16_t* data = buf;
+  uint32_t sum = 0;
 
-//   while (len > 1) {
-//     sum += *data++;
-//     len -= 2;
-//   }
+  while (len > 1) {
+    sum += *data++;
+    len -= 2;
+  }
 
-//   if (len == 1) {
-//     uint8_t last = *(const uint8_t*)data;
-//     sum += (uint16_t)last << 8; /* pad high byte (network byte order) */
-//   }
+  if (len == 1) {
+    uint8_t last = *(const uint8_t*)data;
+    sum += (uint16_t)last << 8; /* pad high byte (network byte order) */
+  }
 
-//   /* fold 32-bit sum to 16 bits */
-//   while (sum >> 16)
-//     sum = (sum & 0xFFFF) + (sum >> 16);
+  /* fold 32-bit sum to 16 bits */
+  while (sum >> 16)
+    sum = (sum & 0xFFFF) + (sum >> 16);
 
-//   return (uint16_t)(~sum);
-// }
+  return (uint16_t)(~sum);
+}
+
+void sigHandler(int signo) {
+  if (signo == 2) {
+    exit(1);
+  }
+}
+
+int gettimeofday(struct timeval* tv, struct timezone* tz);
 
 int main(int ac, char** av) {
+
+  signal(SIGINT, sigHandler);
+
   if (ac != 2) {
     myLog("Error: bad args\nUsage: ./pingServer IP\n");
     return 1;
@@ -73,30 +87,54 @@ int main(int ac, char** av) {
     myLog("EXIT\n");
     return 1;
   }
-  myLog("ft_pîng: socket initialized\n");
 
+  size_t bufferSize = 84;
+  size_t headersSize = sizeof(struct iphdr) + sizeof(struct icmphdr);
 
-	pingLog("PING  (%s) [PayloadSize]([PacketSize]) bytes of data.\n", &rawSocket->_ipAddress[0]);
+  pingLog("PING %s (%s) %lu(%lu) bytes of data.\n", rawSocket->_hostname,
+          &rawSocket->_ipAddress[0], bufferSize - headersSize, bufferSize);
 
-  size_t bufferSize = 42;
-  char buffer[bufferSize];
-  bzero(buffer, bufferSize);
-  buildIcmpHeader(&buffer[0]);
-    uint16_t checksum = computeChecksum(&buffer[0], bufferSize);
-  // uint16_t checksum = icmp_checksum(&buffer[0], bufferSize);
-  insertChecksum(&buffer[0], checksum);
+  uint64_t seqnum = 0;
 
-  int ret =
-      sendto(rawSocket->_sockfd, buffer, bufferSize, MSG_CONFIRM,
-             (struct sockaddr*)(&rawSocket->_sockAddr), rawSocket->_socklen);
-  myLog("ft_pîng: send %d bytes\n", ret);
+  struct timeval rttTv1;
+  struct timeval rttTv2;
+  struct timeval rtt;
 
-  char recvBuffer[bufferSize];
-  bzero(recvBuffer, bufferSize);
-  recvfrom(rawSocket->_sockfd, recvBuffer, bufferSize, 0,
-           (struct sockaddr*)(&rawSocket->_sockAddr), &rawSocket->_socklen);
+  while (1) {
 
-  myLog("ft_pîng: recv  %s \n", recvBuffer);
+    char buffer[bufferSize];
+    bzero(buffer, bufferSize);
+    buildIcmpHeader(&buffer[0]);
+    // uint16_t checksum = computeChecksum(&buffer[0], bufferSize);
+    uint16_t checksum = icmp_checksum(&buffer[0], bufferSize);
+    insertChecksum(&buffer[0], checksum);
+
+    sendto(rawSocket->_sockfd, buffer, bufferSize, MSG_CONFIRM,
+           (struct sockaddr*)(&rawSocket->_sockAddr), rawSocket->_socklen);
+    if (gettimeofday(&rttTv1, NULL) == -1) {
+      exitError("gettimeofday() failed");
+    }
+
+    char recvBuffer[bufferSize];
+    bzero(recvBuffer, bufferSize);
+    recvfrom(rawSocket->_sockfd, recvBuffer, bufferSize, 0,
+             (struct sockaddr*)(&rawSocket->_sockAddr), &rawSocket->_socklen);
+    uint8_t ttl = ((struct iphdr*)recvBuffer)->ttl;
+
+    if (gettimeofday(&rttTv2, NULL) == -1) {
+      exitError("gettimeofday() failed");
+    }
+    timersub(&rttTv2, &rttTv1, &rtt);
+
+    sleep(1);
+    pingLog("%lu bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%lu ms\n",
+            bufferSize, rawSocket->_hostname, rawSocket->_ipAddress, seqnum++,
+            ttl, rtt.tv_usec / 1000, rtt.tv_usec % 1000);
+  }
+
+  // --- google.com ping statistics ---
+  // 1 packets transmitted, 1 received, 0% packet loss, time 0ms
+  // rtt min/avg/max/mdev = 1.030/1.030/1.030/0.000 ms
 }
 
 // unsigned short
