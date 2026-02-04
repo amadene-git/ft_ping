@@ -29,10 +29,10 @@ t_rawSocket* initializeRawSocket(const char *host, t_rawSocket* server) {
   server->_sockAddr.sin_family = AF_INET;
   server->_socklen = sizeof(struct sockaddr_in);
 
-  if (bind(server->_sockfd, (struct sockaddr*)(&server->_sockAddr),
-           server->_socklen) == -1) {
-    exitError("bind() failed");
-  }
+//   if (bind(server->_sockfd, (struct sockaddr*)(&server->_sockAddr),
+//            server->_socklen) == -1) {
+//     exitError("bind() failed");
+//   }
   return server;
 }
 
@@ -50,7 +50,7 @@ int resolveDNS(const char *host, struct sockaddr_in *addrin) {
 
 	if (ret != 0 || result == NULL){
 		fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(ret));
-		return (-1);
+	    exitError("get address failed");
 	}
 
 	*addrin = *(struct sockaddr_in *)result->ai_addr;
