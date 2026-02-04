@@ -8,3 +8,8 @@ Faire un GarbageCollector
 
 ## ping Client
 https://www.frameip.com/entete-icmp/
+
+verifier ttl
+enlever les log intutiles
+dernier log + exit proprement
+nettoyer le code (check le retour erreur + exception + raii)
