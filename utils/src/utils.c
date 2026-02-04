@@ -5,8 +5,8 @@
 #include <string.h>
 
 void exitError(const char* msg) {
-  dprintf(2, "ft_ping: %s, ", msg); // TODO add variadic
-  dprintf(2, " (errno: %s)\n", strerror(errno));
+  myLog("ft_ping: %s, ", msg); // TODO add variadic
+  myLog(" (errno: %s)\n", strerror(errno));
 
   // TODO clean garbage collector
 

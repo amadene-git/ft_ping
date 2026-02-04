@@ -22,6 +22,6 @@ typedef struct s_rawSocket {
   char _ipAddress[16];
 } t_rawSocket;
 
-t_rawSocket* initializeRawSocket(const char *host, t_rawSocket* server);
-int resolveDNS(const char *host, struct sockaddr_in *addrin);
+t_rawSocket* initializeRawSocket(const char* host, t_rawSocket* server);
+int resolveDNS(const char* host, t_rawSocket* server);
 #endif
