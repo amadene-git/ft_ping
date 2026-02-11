@@ -1,16 +1,14 @@
 #include <utils.h>
+#include <timeUtils.h>
 
 void exitProgram(const char* message, int code, bool hasErrno) {
-  if (code == EXIT_SUCCESS) {
-    printf("--- INSERTY statistics ---\n");
-    printf("X packets transmitted, X received, X%% packet loss, time Xms\n");
-    printf("rtt min/avg/max/mdev = X/X/X/X ms\n");
-  } else {
+  if (code != EXIT_SUCCESS) {
     dprintf(2, "%s", message);
     if (hasErrno)
       dprintf(2, " (errno: %s)", strerror(errno));
     dprintf(2, "\n");
   }
+  freeGarbage();
   exit(code);
 }
 
@@ -22,25 +20,19 @@ void printFirstLog(t_rawSocket* rawSocket, t_ping* ping) {
          &rawSocket->_ipAddress[0], ping->packetSize - HEADERS_SIZE,
          ping->packetSize);
 }
-void printLog(t_rawSocket* rawSocket,
-              t_ping* ping,
-              uint8_t ttl,
-              struct timeval rtt) {
+void printLog(t_rawSocket* rawSocket, t_ping* ping, uint8_t ttl) {
+  t_microsec rtt = timevalToUs(((t_RTT*)(*ping->stats.rtts)->data)->result);
   printf("%lu bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%lu ms\n",
          ping->packetSize, rawSocket->_hostname, rawSocket->_ipAddress,
-         ping->seqnum++, ttl, rtt.tv_usec / 1000, rtt.tv_usec % 1000);
+         ping->seqnum++, ttl, rtt / 1000, rtt % 1000);
 }
 
-t_list* newElem(void* data) {
-  t_list* elem = malloc(sizeof(t_list));
-  elem->data = data;
-  elem->next = NULL;
-  return elem;
-}
-
-void pushBack(t_list* begin, t_list* elem) {
-  while (begin->next) {
-    begin = begin->next;
+char* ft_strdup(const char* s) {
+  size_t size = strlen(s) + 1;
+  char* ret = galloc(size);
+  while (*s) {
+    *ret++ = *s++;
   }
-  begin->next = elem;
+  *ret = 0;
+  return (ret - (size - 1));
 }

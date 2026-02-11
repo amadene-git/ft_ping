@@ -6,12 +6,14 @@ OBJ_DIR	= objs
 SRCS	= $(SRC_DIR)/main.c\
 		  $(SRC_DIR)/netUtils.c\
 		  $(SRC_DIR)/timeUtils.c\
+		  $(SRC_DIR)/list.c\
+		  $(SRC_DIR)/stats.c\
 		  $(SRC_DIR)/utils.c
 OBJS	= $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS	= $(OBJS:.o=.d)
 
 CC 			= gcc
-CFLAGS 		= -Wall -Wextra -Werror -MMD -MP
+CFLAGS 		= -Wall -Wextra -Werror -MMD -MP -g
 INCLUDES 	= -I include
 
 all				: $(NAME)

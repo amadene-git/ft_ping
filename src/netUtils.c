@@ -1,11 +1,8 @@
 #include <netUtils.h>
+#include <timeUtils.h>
 
 t_rawSocket* initializeRawSocket(const char* host) {
-  t_rawSocket* rawSocket = NULL;
-  if ((rawSocket = malloc(sizeof(t_rawSocket))) == NULL) {
-    exitProgram("malloc() failed", errno, true);
-  }
-
+  t_rawSocket* rawSocket = galloc(sizeof(t_rawSocket));
   if ((rawSocket->_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
     exitProgram("socket() failed", errno, true);
   }
@@ -13,7 +10,8 @@ t_rawSocket* initializeRawSocket(const char* host) {
   resolveDNS(host, rawSocket);
   rawSocket->_sockAddr.sin_family = AF_INET;
   rawSocket->_socklen = sizeof(struct sockaddr_in);
-  rawSocket->_hostname = strdup(host);
+  rawSocket->_hostname = ft_strdup(host);
+  //   bzero(rawSocket->_ipAddress, 16);
 
   //   if (bind(rawSocket->_sockfd, (struct sockaddr*)(&rawSocket->_sockAddr),
   //            rawSocket->_socklen) == -1) {
@@ -31,17 +29,16 @@ int resolveDNS(const char* host, t_rawSocket* rawSocket) {
   hints.ai_protocol = IPPROTO_ICMP;
 
   int ret = getaddrinfo(host, NULL, &hints, &result);
-
   if (ret != 0 || result == NULL) {
     char buffer[100] = {0};
     sprintf(buffer, "ft_ping: %s: Nom ou service inconnu\n", host);
     exitProgram(buffer, 2, false);
   }
-
   rawSocket->_sockAddr = *(struct sockaddr_in*)result->ai_addr;
+  free(result);
+
   char str_ip[16] = {0};
   inet_ntop(AF_INET, &rawSocket->_sockAddr.sin_addr.s_addr, &str_ip[0], 100);
-
   strncpy(&rawSocket->_ipAddress[0], &str_ip[0], 15);
 
   return 0;
@@ -90,7 +87,11 @@ void sendPacket(t_ping* ping, t_rawSocket* rawSocket) {
   buildIcmpHeader(ping->packet);
   icmpChecksum(ping->packet, ping->packetSize);
 
-  if ((size_t)sendto(rawSocket->_sockfd, ping->packet, ping->packetSize,
+  t_RTT* rtt = galloc(sizeof(t_RTT));
+	listPushFront(ping->stats.rtts, listNewElem(rtt));
+	*rtt = initRTT();
+
+	if ((size_t)sendto(rawSocket->_sockfd, ping->packet, ping->packetSize,
                      MSG_CONFIRM, (struct sockaddr*)(&rawSocket->_sockAddr),
                      rawSocket->_socklen) != ping->packetSize) {
     exitProgram("sendTo() failed", errno, true);

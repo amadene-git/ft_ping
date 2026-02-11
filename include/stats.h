@@ -1,24 +1,22 @@
 #ifndef STATS_H
 #define STATS_H
 
+#include <list.h>
 #include <timeUtils.h>
+
 #include <stdint.h>
 
-// void* myAlloc(size_t size, list) {
-
-//     void * ptr = malloc(size);
-//     if (ptr)
-//     pushBackList(ptr, list);
-// }
-
 typedef struct s_RTT t_RTT;
-
 
 typedef struct s_stats {
   uint64_t nbSend;
   uint64_t nbRecv;
-  uint64_t time;
-  t_RTT* rtts;
+  t_RTT progDuration;
+  t_list** rtts;
 } t_stats;
+
+uint64_t computeLossPercent(t_stats stats);
+uint64_t getProgramDuration(t_RTT* progDuration);
+t_microsec getMinRtt(t_list* rtts);
 
 #endif

@@ -1,6 +1,7 @@
 #ifndef FT_PING_H
 #define FT_PING_H
 
+#include <timeUtils.h>
 #include <stats.h>
 #include <stdint.h>
 #include <string.h>
