@@ -64,7 +64,7 @@ void* buildIcmpHeader(void* hdrPtr) {
   return hdrPtr + sizeof(struct icmphdr);
 }
 
-void icmp_checksum(const void* packet, int len) {
+void icmpChecksum(const void* packet, int len) {
   const uint16_t* data = packet;
   uint32_t sum = 0;
 
@@ -83,4 +83,18 @@ void icmp_checksum(const void* packet, int len) {
 
   struct icmphdr* header = (struct icmphdr*)packet;
   header->checksum = (uint16_t)(~sum);
+}
+
+void sendPacket(t_ping* ping, t_rawSocket* rawSocket) {
+  bzero(ping->packet, ping->packetSize);
+  buildIcmpHeader(ping->packet);
+  icmpChecksum(ping->packet, ping->packetSize);
+
+  if ((size_t)sendto(rawSocket->_sockfd, ping->packet, ping->packetSize,
+                     MSG_CONFIRM, (struct sockaddr*)(&rawSocket->_sockAddr),
+                     rawSocket->_socklen) != ping->packetSize) {
+    exitProgram("sendTo() failed", errno, true);
+  }
+
+  ++ping->stats.nbSend;
 }

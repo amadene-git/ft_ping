@@ -18,5 +18,12 @@ void printLog(t_rawSocket* rawSocket,
               t_ping* ping,
               uint8_t ttl,
               struct timeval rtt);
+typedef struct s_list {
+  void* data;
+  struct s_list* next;
+} t_list;
+
+t_list* newElem(void* data);
+void pushBack(t_list* begin, t_list* elem);
 
 #endif

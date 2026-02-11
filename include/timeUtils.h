@@ -10,7 +10,7 @@ typedef struct s_RTT {
   struct timeval result;
 } t_RTT;
 
-void startRTT(t_RTT* rtts);
-void endRTT(t_RTT* rtts);
+t_RTT initRTT();
+void computeRTT(t_RTT* rtt);
 
 #endif

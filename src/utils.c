@@ -30,3 +30,17 @@ void printLog(t_rawSocket* rawSocket,
          ping->packetSize, rawSocket->_hostname, rawSocket->_ipAddress,
          ping->seqnum++, ttl, rtt.tv_usec / 1000, rtt.tv_usec % 1000);
 }
+
+t_list* newElem(void* data) {
+  t_list* elem = malloc(sizeof(t_list));
+  elem->data = data;
+  elem->next = NULL;
+  return elem;
+}
+
+void pushBack(t_list* begin, t_list* elem) {
+  while (begin->next) {
+    begin = begin->next;
+  }
+  begin->next = elem;
+}

@@ -10,10 +10,8 @@ Faire un GarbageCollector
 https://www.frameip.com/entete-icmp/
 
 dernier log (stats)
-nettoyer le code (check le retour erreur + exception + raii)
 gabage collector
 check reply
- old/client/Makefile old/client/include/ft_ping.h old/client/src/ft_ping.c old/client/src/main.c old/lib/libutils.a old/server/Makefile old/server/include/pingServer.h old/server/obj/main.o old/server/pingServer old/server/src/main.c old/utils/Makefile old/utils/include/rawSocket.h old/utils/include/utils.h old/utils/src/rawSocket.c old/utils/src/utils.c
 
 creer fichier:
 net.h -> relatif au reseau (send() recieve() initailize() close())

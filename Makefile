@@ -5,7 +5,7 @@ OBJ_DIR	= objs
 
 SRCS	= $(SRC_DIR)/main.c\
 		  $(SRC_DIR)/netUtils.c\
-		  $(SRC_DIR)/time.c\
+		  $(SRC_DIR)/timeUtils.c\
 		  $(SRC_DIR)/utils.c
 OBJS	= $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS	= $(OBJS:.o=.d)
