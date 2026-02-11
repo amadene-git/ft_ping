@@ -10,11 +10,9 @@ Faire un GarbageCollector
 https://www.frameip.com/entete-icmp/
 
 dernier log (stats)
-gabage collector
 check reply
 
 creer fichier:
-net.h -> relatif au reseau (send() recieve() initailize() close())
+net.h -> relatif au reseau (recieve() close())
          check la taille du reply
-stats.h -> list chaine, timestamp ?
 arg.h -> avec les arguments
