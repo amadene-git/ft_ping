@@ -10,6 +10,12 @@ Faire un GarbageCollector
 https://www.frameip.com/entete-icmp/
 
 verifier ttl
-enlever les log intutiles
 dernier log + exit proprement
 nettoyer le code (check le retour erreur + exception + raii)
+
+creer fichier:
+net.h -> relatif au reseau (send() recieve() initailize() close())
+         check la taille du reply
+stats.h -> list chaine, timestamp ?
+arg.h -> avec les arguments
+output.h
