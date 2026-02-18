@@ -16,10 +16,10 @@ void computeRTT(t_RTT* rtt) {
   timersub(&rtt->end, &rtt->begin, &rtt->result);
 }
 
-uint64_t timevalToMs(struct timeval tv) {
+t_millisec timevalToMs(struct timeval tv) {
   return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-uint64_t timevalToUs(struct timeval tv) {
+t_microsec timevalToUs(struct timeval tv) {
   return (tv.tv_sec * 1000000) + tv.tv_usec;
 }

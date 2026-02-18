@@ -1,11 +1,10 @@
-#include <utils.h>
 #include <timeUtils.h>
+#include <utils.h>
 
 void exitProgram(const char* message, int code, bool hasErrno) {
   if (code != EXIT_SUCCESS) {
     dprintf(2, "%s", message);
-    if (hasErrno)
-      dprintf(2, " (errno: %s)", strerror(errno));
+    if (hasErrno) dprintf(2, " (errno: %s)", strerror(errno));
     dprintf(2, "\n");
   }
   freeGarbage();
@@ -13,18 +12,54 @@ void exitProgram(const char* message, int code, bool hasErrno) {
 }
 
 void printFirstLog(t_rawSocket* rawSocket, t_ping* ping) {
-  static const size_t HEADERS_SIZE =
-      sizeof(struct iphdr) + sizeof(struct icmphdr);
+  static const size_t HEADERS_SIZE = sizeof(struct iphdr) + sizeof(struct icmphdr);
 
-  printf("PING %s (%s) %lu(%lu) bytes of data.\n", rawSocket->_hostname,
-         &rawSocket->_ipAddress[0], ping->packetSize - HEADERS_SIZE,
+  printf("PING %s (%s) %lu(%lu) bytes of data.\n",
+         rawSocket->_hostname,
+         &rawSocket->_ipAddress[0],
+         ping->packetSize - HEADERS_SIZE,
          ping->packetSize);
 }
-void printLog(t_rawSocket* rawSocket, t_ping* ping, uint8_t ttl) {
+void printLog(t_rawSocket* rawSocket, t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
   t_microsec rtt = timevalToUs(((t_RTT*)(*ping->stats.rtts)->data)->result);
-  printf("%lu bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%lu ms\n",
-         ping->packetSize, rawSocket->_hostname, rawSocket->_ipAddress,
-         ping->seqnum++, ttl, rtt / 1000, rtt % 1000);
+  if (strcmp(rawSocket->_hostname, rawSocket->_ipAddress)) {
+    printf("%lu bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
+           nbBytesRecv,
+           rawSocket->_hostname,
+           rawSocket->_ipAddress,
+           ping->seqnum++,
+           ttl,
+           rtt / 1000,
+           rtt % 1000);
+  } else {
+    printf("%lu bytes from %s: icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
+           nbBytesRecv,
+           rawSocket->_hostname,
+           ping->seqnum++,
+           ttl,
+           rtt / 1000,
+           rtt % 1000);
+  }
+}
+
+void printStats(t_ping* ping) {
+  printf("\n--- %s ping statistics ---\n", ping->rawSocket->_hostname);
+  printf("%lu packets transmitted, ", ping->stats.nbSend);
+  printf("%lu received, ", ping->stats.nbRecv);
+  printf("%lu%% packet loss, ", computeLossPercent(ping->stats));
+  printf("time %lums\n", getProgramDuration(&ping->stats.progDuration));
+  printf("rtt min/avg/max/mdev = ");
+
+  t_microsec min = getMinRtt(*ping->stats.rtts);
+  printf("%lu.%lu/", min / 1000, min % 1000);
+
+  t_rtt_stats meanAndDev = welfordAlgo(*ping->stats.rtts);
+  printf("%lu.%lu/", meanAndDev.avg / 1000, meanAndDev.avg % 1000);
+
+  t_microsec max = getMaxRtt(*ping->stats.rtts);
+  printf("%lu.%lu/", max / 1000, max % 1000);
+
+  printf("%lu.%lums\n", meanAndDev.mdev / 1000, meanAndDev.mdev % 1000);
 }
 
 char* ft_strdup(const char* s) {

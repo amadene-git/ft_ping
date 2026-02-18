@@ -29,6 +29,9 @@ void* galloc(size_t size) {
 
 void freeGarbage() {
   t_list* next = NULL;
+  if (g_garbage == NULL) {
+    return;
+  }
   while ((*g_garbage)->next) {
     next = (*g_garbage)->next;
     free((*g_garbage)->data);
@@ -54,4 +57,14 @@ void listPushFront(t_list** begin, t_list* elem) {
   }
   elem->next = *begin;
   *begin = elem;
+}
+
+size_t listLen(t_list* elem) {
+  size_t len = 0;
+
+  while (elem) {
+    ++len;
+    elem = elem->next;
+  }
+  return len;
 }

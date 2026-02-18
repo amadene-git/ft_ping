@@ -12,5 +12,6 @@ void* galloc(size_t size);
 void freeGarbage();
 t_list* listNewElem(void* data);
 void listPushFront(t_list** begin, t_list* elem);
+size_t listLen(t_list* elem);
 
 #endif

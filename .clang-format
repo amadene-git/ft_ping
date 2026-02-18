@@ -1,7 +1,8 @@
-BasedOnStyle: LLVM
-AllowShortIfStatementsOnASingleLine: false
+BasedOnStyle: Google
+ColumnLimit: 120
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
 BinPackParameters: false
 AllowShortFunctionsOnASingleLine: None
-PointerAlignment: Left
-AlwaysBreakTemplateDeclarations: Yes

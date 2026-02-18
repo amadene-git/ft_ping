@@ -9,10 +9,34 @@ Faire un GarbageCollector
 ## ping Client
 https://www.frameip.com/entete-icmp/
 
-dernier log (stats)
-check reply
+
+fix les dependances .h
+fix log ip entre parenthese
+faire un recv nonbloqant (timeout)
 
 creer fichier:
 net.h -> relatif au reseau (recieve() close())
-         check la taille du reply
-arg.h -> avec les arguments
+         check contenu du reply (checksum)
+arg.h -> avec les arguments:
+            -? (--help)
+            -v (--version)
+
+
+
+error:
+./ft_ping 226.0.0.1
+
+
+
+bonus:
+
+-s packetsize
+-S sndbuf
+-t ttl
+-W timeout
+-c count
+-i interval
+-I interface
+
+
+

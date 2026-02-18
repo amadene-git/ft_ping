@@ -18,7 +18,7 @@ INCLUDES 	= -I include
 
 all				: $(NAME)
 $(NAME)			: $(OBJ_DIR) $(OBJS)
-					$(CC) $(OBJS) -o $@
+					$(CC) $(CFLAGS) $(OBJS) -o $@ -lm
 $(OBJ_DIR)		:
 					mkdir -p $(OBJ_DIR)
 $(OBJ_DIR)/%.o	: $(SRC_DIR)/%.c

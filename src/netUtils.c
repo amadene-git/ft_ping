@@ -11,12 +11,7 @@ t_rawSocket* initializeRawSocket(const char* host) {
   rawSocket->_sockAddr.sin_family = AF_INET;
   rawSocket->_socklen = sizeof(struct sockaddr_in);
   rawSocket->_hostname = ft_strdup(host);
-  //   bzero(rawSocket->_ipAddress, 16);
 
-  //   if (bind(rawSocket->_sockfd, (struct sockaddr*)(&rawSocket->_sockAddr),
-  //            rawSocket->_socklen) == -1) {
-  //     exitError("bind() failed");
-  //   }
   return rawSocket;
 }
 
@@ -31,7 +26,7 @@ int resolveDNS(const char* host, t_rawSocket* rawSocket) {
   int ret = getaddrinfo(host, NULL, &hints, &result);
   if (ret != 0 || result == NULL) {
     char buffer[100] = {0};
-    sprintf(buffer, "ft_ping: %s: Nom ou service inconnu\n", host);
+    sprintf(buffer, "ft_ping: %s: Nom ou service inconnu", host);
     exitProgram(buffer, 2, false);
   }
   rawSocket->_sockAddr = *(struct sockaddr_in*)result->ai_addr;
@@ -49,7 +44,7 @@ void* buildIcmpHeader(void* hdrPtr) {
   static uint16_t seqno = 0;
 
   header->type = ICMP_ECHO;
-  header->code = 0; // network unreachable
+  header->code = 0;  // network unreachable
   // header->code = 1;// host unreachable
   // header->code = 3;// port unreachable
 
@@ -70,13 +65,12 @@ void icmpChecksum(const void* packet, int len) {
     len -= 2;
   }
 
-  if (len == 1) { // padding
+  if (len == 1) {  // padding
     uint8_t last = *(const uint8_t*)data;
     sum += (uint16_t)last << 8;
   }
 
-  while (sum >> 16)
-    sum = (sum & 0xFFFF) + (sum >> 16);
+  while (sum >> 16) sum = (sum & 0xFFFF) + (sum >> 16);
 
   struct icmphdr* header = (struct icmphdr*)packet;
   header->checksum = (uint16_t)(~sum);
@@ -88,14 +82,40 @@ void sendPacket(t_ping* ping, t_rawSocket* rawSocket) {
   icmpChecksum(ping->packet, ping->packetSize);
 
   t_RTT* rtt = galloc(sizeof(t_RTT));
-	listPushFront(ping->stats.rtts, listNewElem(rtt));
-	*rtt = initRTT();
+  listPushFront(ping->stats.rtts, listNewElem(rtt));
 
-	if ((size_t)sendto(rawSocket->_sockfd, ping->packet, ping->packetSize,
-                     MSG_CONFIRM, (struct sockaddr*)(&rawSocket->_sockAddr),
+  *rtt = initRTT();
+  if ((size_t)sendto(rawSocket->_sockfd,
+                     ping->packet,
+                     ping->packetSize,
+                     MSG_CONFIRM,
+                     (struct sockaddr*)(&rawSocket->_sockAddr),
                      rawSocket->_socklen) != ping->packetSize) {
     exitProgram("sendTo() failed", errno, true);
   }
 
   ++ping->stats.nbSend;
+}
+
+ssize_t receivePacket(t_ping* ping, t_rawSocket* rawSocket, uint8_t* ttl) {
+  char recvBuffer[ping->packetSize];
+  bzero(recvBuffer, ping->packetSize);
+  ssize_t nbBytesRecv = recvfrom(rawSocket->_sockfd,
+                                 recvBuffer,
+                                 ping->packetSize,
+                                 0,
+                                 (struct sockaddr*)(&rawSocket->_sockAddr),
+                                 &rawSocket->_socklen);
+  computeRTT((t_RTT*)((*ping->stats.rtts)->data));
+  if (nbBytesRecv == 0) {
+    exitProgram("Receive no ping reply", EXIT_FAILURE, false);
+  }
+  if (nbBytesRecv == -1) {
+    exitProgram("recvFrom() failed: ", errno, true);
+  }
+
+  ++ping->stats.nbRecv;
+  *ttl = ((struct iphdr*)recvBuffer)->ttl;
+
+  return nbBytesRecv;
 }

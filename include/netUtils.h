@@ -1,9 +1,10 @@
 #ifndef NET_UTILS_H
 #define NET_UTILS_H
 
-#include <utils.h>
 #include <ft_ping.h>
+#include <utils.h>
 
+// std
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -29,5 +30,6 @@ int resolveDNS(const char* host, t_rawSocket* server);
 void* buildIcmpHeader(void* hdrPtr);
 void icmp_checksum(const void* packet, int len);
 void sendPacket(t_ping* ping, t_rawSocket* rawSocket);
+ssize_t receivePacket(t_ping* ping, t_rawSocket* rawSocket, uint8_t* ttl);
 
 #endif
