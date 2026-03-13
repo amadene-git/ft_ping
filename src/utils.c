@@ -21,7 +21,7 @@ void exitProgram(const char* message, int code, bool hasErrno) {
 void printFirstLog(t_ping* ping) {
   static const size_t HEADERS_SIZE = sizeof(struct iphdr) + sizeof(struct icmphdr);
 
-  printf("PING %s (%s) %lu(%lu) bytes of data.\n",
+  printf("FT_PING %s (%s) %lu(%lu) bytes of data.\n",
          ping->rawSocket->_hostname,
          &ping->rawSocket->_ipAddress[0],
          ping->packetSize - HEADERS_SIZE,

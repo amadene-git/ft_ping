@@ -1,5 +1,5 @@
-#ifndef GABAGE_COLLECTOR_H
-#define GABAGE_COLLECTOR_H
+#ifndef LIST_H
+#define LIST_H
 
 #include <stdlib.h>
 

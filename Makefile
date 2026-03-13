@@ -3,7 +3,8 @@ NAME	= ft_ping
 SRC_DIR	= src
 OBJ_DIR	= objs
 
-SRCS	= $(SRC_DIR)/main.c\
+SRCS	= $(SRC_DIR)/cmdLineParser.c\
+		  $(SRC_DIR)/main.c\
 		  $(SRC_DIR)/netUtils.c\
 		  $(SRC_DIR)/timeUtils.c\
 		  $(SRC_DIR)/list.c\

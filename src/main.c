@@ -1,11 +1,14 @@
+#include <cmdLineParser.h>
 #include <ft_ping.h>
 #include <list.h>
 #include <netUtils.h>
+#include <timeUtils.h>
+#include <utils.h>
+
+// std
 #include <signal.h>
 #include <stdatomic.h>
-#include <timeUtils.h>
 #include <unistd.h>
-#include <utils.h>
 
 volatile sig_atomic_t g_stop = 0;
 
@@ -15,15 +18,24 @@ void sigHandler(int signo) {
   }
 }
 
-int main(int ac, char** av) {
+int main(const int ac, const char** av) {
   struct sigaction sa;
   sa.sa_handler = sigHandler;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sigaction(SIGINT, &sa, NULL);
 
+  t_cmdLineParser* cmdLineParser =
+      initializeCmdLineParser("ft_ping", "Small project for 42 School that recreates the ping command.", ac, av);
+  addOptionArg(cmdLineParser,
+               createOption('c', "count", NULL, NULL, ULONG, false, "stop after sending NUMBER packets"));
+  addOptionArg(
+      cmdLineParser,
+      createOption('i', "interval", NULL, NULL, ULONG, false, "wait NUMBER seconds between sending each packet"));
   if (ac != 2) {
-    exitProgram("Usage: ./ft_ping destination", 2, false);
+    char outBuffer[1500] = {0};
+    getStrUsage(outBuffer, cmdLineParser);
+    exitProgram(outBuffer, 2, false);
     return 1;
   }
 
