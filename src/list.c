@@ -7,17 +7,17 @@ void* galloc(size_t size) {
   void* ptr = NULL;
   ptr = malloc(size);
   if (ptr == NULL) {
-    exitProgram("malloc() failed", errno, EXIT_FAILURE);
+    exitProgram("malloc() failed", errno, true);
   }
 
   t_list* newElem = malloc(sizeof(t_list));
   if (newElem == NULL) {
-    exitProgram("malloc() failed", errno, EXIT_FAILURE);
+    exitProgram("malloc() failed", errno, true);
   }
   if (g_garbage == NULL) {
     g_garbage = malloc(sizeof(t_list*));
     if (g_garbage == NULL) {
-      exitProgram("malloc() failed", errno, EXIT_FAILURE);
+      exitProgram("malloc() failed", errno, true);
     }
     *g_garbage = NULL;
   }

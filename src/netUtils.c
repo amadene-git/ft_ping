@@ -1,5 +1,6 @@
 #include <netUtils.h>
 #include <timeUtils.h>
+#include <utils.h>
 
 t_rawSocket* initializeRawSocket(const char* host) {
   t_rawSocket* rawSocket = galloc(sizeof(t_rawSocket));
@@ -76,7 +77,7 @@ void icmpChecksum(const void* packet, int len) {
   header->checksum = (uint16_t)(~sum);
 }
 
-void sendPacket(t_ping* ping, t_rawSocket* rawSocket) {
+void sendPacket(t_ping* ping) {
   bzero(ping->packet, ping->packetSize);
   buildIcmpHeader(ping->packet);
   icmpChecksum(ping->packet, ping->packetSize);
@@ -85,33 +86,33 @@ void sendPacket(t_ping* ping, t_rawSocket* rawSocket) {
   listPushFront(ping->stats.rtts, listNewElem(rtt));
 
   *rtt = initRTT();
-  if ((size_t)sendto(rawSocket->_sockfd,
+  if ((size_t)sendto(ping->rawSocket->_sockfd,
                      ping->packet,
                      ping->packetSize,
                      MSG_CONFIRM,
-                     (struct sockaddr*)(&rawSocket->_sockAddr),
-                     rawSocket->_socklen) != ping->packetSize) {
+                     (struct sockaddr*)(&ping->rawSocket->_sockAddr),
+                     ping->rawSocket->_socklen) != ping->packetSize) {
     exitProgram("sendTo() failed", errno, true);
   }
 
   ++ping->stats.nbSend;
 }
 
-ssize_t receivePacket(t_ping* ping, t_rawSocket* rawSocket, uint8_t* ttl) {
+ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
   char recvBuffer[ping->packetSize];
   bzero(recvBuffer, ping->packetSize);
-  ssize_t nbBytesRecv = recvfrom(rawSocket->_sockfd,
+  ssize_t nbBytesRecv = recvfrom(ping->rawSocket->_sockfd,
                                  recvBuffer,
                                  ping->packetSize,
                                  0,
-                                 (struct sockaddr*)(&rawSocket->_sockAddr),
-                                 &rawSocket->_socklen);
+                                 (struct sockaddr*)(&ping->rawSocket->_sockAddr),
+                                 &ping->rawSocket->_socklen);
   computeRTT((t_RTT*)((*ping->stats.rtts)->data));
   if (nbBytesRecv == 0) {
     exitProgram("Receive no ping reply", EXIT_FAILURE, false);
   }
   if (nbBytesRecv == -1) {
-    exitProgram("recvFrom() failed: ", errno, true);
+    return -1;
   }
 
   ++ping->stats.nbRecv;

@@ -16,7 +16,11 @@ void sigHandler(int signo) {
 }
 
 int main(int ac, char** av) {
-  signal(SIGINT, sigHandler);
+  struct sigaction sa;
+  sa.sa_handler = sigHandler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGINT, &sa, NULL);
 
   if (ac != 2) {
     exitProgram("Usage: ./ft_ping destination", 2, false);
@@ -36,14 +40,21 @@ int main(int ac, char** av) {
   *(ping.stats.rtts) = NULL;
   uint32_t timeToSleep = 1;
 
-  printFirstLog(rawSocket, &ping);
+  printFirstLog(&ping);
 
   while (g_stop == 0) {
-    sendPacket(&ping, rawSocket);
+    sendPacket(&ping);
 
     uint8_t ttl;
-    ssize_t nbBytesRecv = receivePacket(&ping, rawSocket, &ttl);
-    printLog(rawSocket, &ping, nbBytesRecv, ttl);
+    ssize_t nbBytesRecv = receivePacket(&ping, &ttl);
+    if (nbBytesRecv == -1) {
+      if (g_stop == 0) {
+        exitProgram("recvFrom() failed: ", errno, true);
+      } else {
+        continue;
+      }
+    }
+    printLog(&ping, nbBytesRecv, ttl);
     sleep(timeToSleep);
   }
   printStats(&ping);

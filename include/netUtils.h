@@ -2,7 +2,6 @@
 #define NET_UTILS_H
 
 #include <ft_ping.h>
-#include <utils.h>
 
 // std
 #include <arpa/inet.h>
@@ -29,7 +28,7 @@ t_rawSocket* initializeRawSocket(const char* host);
 int resolveDNS(const char* host, t_rawSocket* server);
 void* buildIcmpHeader(void* hdrPtr);
 void icmp_checksum(const void* packet, int len);
-void sendPacket(t_ping* ping, t_rawSocket* rawSocket);
-ssize_t receivePacket(t_ping* ping, t_rawSocket* rawSocket, uint8_t* ttl);
+void sendPacket(t_ping* ping);
+ssize_t receivePacket(t_ping* ping, uint8_t* ttl);
 
 #endif

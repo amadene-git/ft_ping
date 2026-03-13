@@ -2,22 +2,16 @@
 #define UTILS_H
 
 #include <ft_ping.h>
-#include <netUtils.h>
-#include <timeUtils.h>
 
 // std
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-typedef struct s_rawSocket t_rawSocket;
 
 void exitProgram(const char* message, int code, bool hasErrno);
 
-void printFirstLog(t_rawSocket* rawSocket, t_ping* ping);
-void printLog(t_rawSocket* rawSocket, t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl);
+void printFirstLog(t_ping* ping);
+void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl);
 void printStats(t_ping* ping);
 
 char* ft_strdup(const char* s);

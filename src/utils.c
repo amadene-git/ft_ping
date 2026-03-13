@@ -1,5 +1,12 @@
+#include <netUtils.h>
 #include <timeUtils.h>
 #include <utils.h>
+
+// std
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 void exitProgram(const char* message, int code, bool hasErrno) {
   if (code != EXIT_SUCCESS) {
@@ -11,22 +18,22 @@ void exitProgram(const char* message, int code, bool hasErrno) {
   exit(code);
 }
 
-void printFirstLog(t_rawSocket* rawSocket, t_ping* ping) {
+void printFirstLog(t_ping* ping) {
   static const size_t HEADERS_SIZE = sizeof(struct iphdr) + sizeof(struct icmphdr);
 
   printf("PING %s (%s) %lu(%lu) bytes of data.\n",
-         rawSocket->_hostname,
-         &rawSocket->_ipAddress[0],
+         ping->rawSocket->_hostname,
+         &ping->rawSocket->_ipAddress[0],
          ping->packetSize - HEADERS_SIZE,
          ping->packetSize);
 }
-void printLog(t_rawSocket* rawSocket, t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
+void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
   t_microsec rtt = timevalToUs(((t_RTT*)(*ping->stats.rtts)->data)->result);
-  if (strcmp(rawSocket->_hostname, rawSocket->_ipAddress)) {
+  if (strcmp(ping->rawSocket->_hostname, ping->rawSocket->_ipAddress)) {
     printf("%lu bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
            nbBytesRecv,
-           rawSocket->_hostname,
-           rawSocket->_ipAddress,
+           ping->rawSocket->_hostname,
+           ping->rawSocket->_ipAddress,
            ping->seqnum++,
            ttl,
            rtt / 1000,
@@ -34,7 +41,7 @@ void printLog(t_rawSocket* rawSocket, t_ping* ping, ssize_t nbBytesRecv, uint8_t
   } else {
     printf("%lu bytes from %s: icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
            nbBytesRecv,
-           rawSocket->_hostname,
+           ping->rawSocket->_hostname,
            ping->seqnum++,
            ttl,
            rtt / 1000,

@@ -7,8 +7,6 @@
 // std
 #include <stdint.h>
 
-typedef struct s_RTT t_RTT;
-
 typedef struct {
   t_microsec avg;
   t_microsec mdev;
