@@ -10,16 +10,17 @@ Faire un GarbageCollector
 https://www.frameip.com/entete-icmp/
 
 
-fix les dependances .h
-fix log ip entre parenthese
-faire un recv nonbloqant (timeout)
+ctrl+\ (log intermediaire)
+installer vm
+do not resolve DNS ?
+
 
 creer fichier:
-net.h -> relatif au reseau (recieve() close())
+net.h -> relatif au reseau (close())
          check contenu du reply (checksum)
 arg.h -> avec les arguments:
             -? (--help)
-            -v (--version)
+            -V (verbose)
 
 
 
@@ -29,7 +30,7 @@ error:
 
 
 bonus:
-
+faire un recv nonbloqant (timeout)
 -s packetsize
 -S sndbuf
 -t ttl
@@ -37,6 +38,7 @@ bonus:
 -c count
 -i interval
 -I interface
+-a (sound a recept)
 
 
 
