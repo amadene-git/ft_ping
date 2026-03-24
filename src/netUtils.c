@@ -2,21 +2,23 @@
 #include <timeUtils.h>
 #include <utils.h>
 
-t_rawSocket* initializeRawSocket(const char* host) {
-  t_rawSocket* rawSocket = galloc(sizeof(t_rawSocket));
-  if ((rawSocket->_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
-    exitProgram("socket() failed", errno, true);
+typedef struct s_socketCLient {
+
+}t_socketCLient;
+
+void initializeRawSocket(const char* hostname, t_ping* ping) {
+  ping->rawSocket = galloc(sizeof(t_rawSocket), ping);
+  if ((ping->rawSocket->_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
+    exitProgram("socket() failed", errno, true, ping);
   }
+  ping->rawSocket->_hostname = ft_strdup(hostname, ping);
 
-  resolveDNS(host, rawSocket);
-  rawSocket->_sockAddr.sin_family = AF_INET;
-  rawSocket->_socklen = sizeof(struct sockaddr_in);
-  rawSocket->_hostname = ft_strdup(host);
-
-  return rawSocket;
+  resolveDNS(ping);
+  ping->rawSocket->_sockAddr.sin_family = AF_INET;
+  ping->rawSocket->_socklen = sizeof(struct sockaddr_in);
 }
 
-int resolveDNS(const char* host, t_rawSocket* rawSocket) {
+int resolveDNS(t_ping* ping) {
   struct addrinfo hints;
   struct addrinfo* result = NULL;
   memset(&hints, 0, sizeof(struct addrinfo));
@@ -24,18 +26,18 @@ int resolveDNS(const char* host, t_rawSocket* rawSocket) {
   hints.ai_socktype = SOCK_RAW;
   hints.ai_protocol = IPPROTO_ICMP;
 
-  int ret = getaddrinfo(host, NULL, &hints, &result);
+  int ret = getaddrinfo(ping->rawSocket->_hostname, NULL, &hints, &result);
   if (ret != 0 || result == NULL) {
     char buffer[100] = {0};
-    sprintf(buffer, "ft_ping: %s: Nom ou service inconnu", host);
-    exitProgram(buffer, 2, false);
+    sprintf(buffer, "ft_ping: %s: Nom ou service inconnu", ping->rawSocket->_hostname);
+    exitProgram(buffer, 2, false, ping);
   }
-  rawSocket->_sockAddr = *(struct sockaddr_in*)result->ai_addr;
+  ping->rawSocket->_sockAddr = *(struct sockaddr_in*)result->ai_addr;
   free(result);
 
   char str_ip[16] = {0};
-  inet_ntop(AF_INET, &rawSocket->_sockAddr.sin_addr.s_addr, &str_ip[0], 100);
-  strncpy(&rawSocket->_ipAddress[0], &str_ip[0], 15);
+  inet_ntop(AF_INET, &ping->rawSocket->_sockAddr.sin_addr.s_addr, &str_ip[0], 100);
+  strncpy(&ping->rawSocket->_ipAddress[0], &str_ip[0], 15);
 
   return 0;
 }
@@ -82,17 +84,17 @@ void sendPacket(t_ping* ping) {
   buildIcmpHeader(ping->packet);
   icmpChecksum(ping->packet, ping->packetSize);
 
-  t_RTT* rtt = galloc(sizeof(t_RTT));
-  listPushFront(ping->stats.rtts, listNewElem(rtt));
+  t_RTT* rtt = galloc(sizeof(t_RTT), ping);
+  listPushFront(ping->stats.rtts, listNewElem(rtt, ping), ping);
 
-  *rtt = initRTT();
+  *rtt = initRTT(ping);
   if ((size_t)sendto(ping->rawSocket->_sockfd,
                      ping->packet,
                      ping->packetSize,
                      MSG_CONFIRM,
                      (struct sockaddr*)(&ping->rawSocket->_sockAddr),
                      ping->rawSocket->_socklen) != ping->packetSize) {
-    exitProgram("sendTo() failed", errno, true);
+    exitProgram("sendTo() failed", errno, true, ping);
   }
 
   ++ping->stats.nbSend;
@@ -107,9 +109,9 @@ ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
                                  0,
                                  (struct sockaddr*)(&ping->rawSocket->_sockAddr),
                                  &ping->rawSocket->_socklen);
-  computeRTT((t_RTT*)((*ping->stats.rtts)->data));
+  computeRTT((t_RTT*)((*ping->stats.rtts)->data), ping);
   if (nbBytesRecv == 0) {
-    exitProgram("Receive no ping reply", EXIT_FAILURE, false);
+    exitProgram("Receive no ping reply", EXIT_FAILURE, false, ping);
   }
   if (nbBytesRecv == -1) {
     return -1;

@@ -8,10 +8,12 @@ typedef struct s_list {
   struct s_list* next;
 } t_list;
 
-void* galloc(size_t size);
+typedef struct s_ping t_ping;
+
+void* galloc(size_t size, t_ping* ping);
 void freeGarbage();
-t_list* listNewElem(void* data);
-void listPushFront(t_list** begin, t_list* elem);
+t_list* listNewElem(void* data, t_ping* ping);
+void listPushFront(t_list** begin, t_list* elem, t_ping* ping);
 size_t listLen(t_list* elem);
 
 #endif

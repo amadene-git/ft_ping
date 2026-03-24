@@ -14,8 +14,10 @@ typedef uint64_t t_microsec;
 typedef uint64_t t_millisec;
 typedef uint64_t t_sec;
 
-t_RTT initRTT();
-void computeRTT(t_RTT* rtt);
+typedef struct s_ping t_ping;
+
+t_RTT initRTT(t_ping* ping);
+void computeRTT(t_RTT* rtt, t_ping* ping);
 uint64_t timevalToMs(struct timeval tv);
 uint64_t timevalToUs(struct timeval tv);
 

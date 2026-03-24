@@ -3,6 +3,50 @@
 Faire un CommandLine parser
 Faire un GarbageCollector
 
+## ping Client
+https://www.frameip.com/entete-icmp/
+
+## installer ping inetutils 2.0
+wget http://ftp.debian.org/debian/pool/main/i/inetutils/inetutils-ping_2.0-1+deb11u2_amd64.deb
+sudo dpkg -i inetutils-ping_2.0-1+deb11u2_amd64.deb
+sudo apt -f install
+
+
+ctrl+\ (log intermediaire)
+do not resolve DNS ?
+commencer le seqnum a 0
+gerer le nb bytes recv (corriger les log)
+
+creer fichier:
+net.h -> relatif au reseau (close())
+         check contenu du reply (checksum)
+arg.h -> avec les arguments:
+            -? (--help)
+            -V (verbose)
+
+
+test:
+    server de test
+
+
+error:
+./ft_ping 226.0.0.1
+
+
+
+bonus:
+faire un recv nonbloqant (timeout)
+-s packetsize
+-S sndbuf
+-t ttl
+-W timeout
+-c count
+-i interval
+-I interface
+-a (sound a recept)
+
+
+
 
 #refaire les Makefiles (relink)
 

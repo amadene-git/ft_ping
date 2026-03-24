@@ -8,13 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-void exitProgram(const char* message, int code, bool hasErrno) {
+void exitProgram(const char* message, int code, bool hasErrno, t_ping* ping) {
   if (code != EXIT_SUCCESS) {
     dprintf(2, "%s", message);
     if (hasErrno) dprintf(2, " (errno: %s)", strerror(errno));
     dprintf(2, "\n");
   }
-  freeGarbage();
+  freeGarbage(ping);
   exit(code);
 }
 
@@ -54,7 +54,7 @@ void printStats(t_ping* ping) {
   printf("%lu packets transmitted, ", ping->stats.nbSend);
   printf("%lu received, ", ping->stats.nbRecv);
   printf("%lu%% packet loss, ", computeLossPercent(ping->stats));
-  printf("time %lums\n", getProgramDuration(&ping->stats.progDuration));
+  printf("time %lums\n", getProgramDuration(&ping->stats.progDuration, ping));
   printf("rtt min/avg/max/mdev = ");
 
   t_microsec min = getMinRtt(*ping->stats.rtts);
@@ -69,9 +69,9 @@ void printStats(t_ping* ping) {
   printf("%lu.%lums\n", meanAndDev.mdev / 1000, meanAndDev.mdev % 1000);
 }
 
-char* ft_strdup(const char* s) {
+char* ft_strdup(const char* s, t_ping* ping) {
   size_t size = strlen(s) + 1;
-  char* ret = galloc(size);
+  char* ret = galloc(size, ping);
   while (*s) {
     *ret++ = *s++;
   }

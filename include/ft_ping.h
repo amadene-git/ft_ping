@@ -16,6 +16,7 @@ typedef struct s_ping {
   uint64_t seqnum;
   t_stats stats;
   t_rawSocket* rawSocket;
+  t_list** garbage;
 } t_ping;
 
 #endif

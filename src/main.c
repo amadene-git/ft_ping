@@ -18,37 +18,44 @@ void sigHandler(int signo) {
   }
 }
 
-int main(const int ac, const char** av) {
+void initializeSignal() {
   struct sigaction sa;
   sa.sa_handler = sigHandler;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sigaction(SIGINT, &sa, NULL);
+}
 
+int main(const int ac, const char** av) {
+  t_ping ping;
+  ping.garbage = NULL;
+
+  initializeSignal();
   t_cmdLineParser* cmdLineParser =
-      initializeCmdLineParser("ft_ping", "Small project for 42 School that recreates the ping command.", ac, av);
+      initializeCmdLineParser("ft_ping", "Small project for 42 School that recreates the ping command.", ac, av, &ping);
   addOptionArg(cmdLineParser,
-               createOption('c', "count", NULL, NULL, ULONG, false, "stop after sending NUMBER packets"));
+               createOption('c', "count", NULL, NULL, ULONG, false, "stop after sending NUMBER packets"),
+               &ping);
   addOptionArg(
       cmdLineParser,
-      createOption('i', "interval", NULL, NULL, ULONG, false, "wait NUMBER seconds between sending each packet"));
+      createOption('i', "interval", NULL, NULL, ULONG, false, "wait NUMBER seconds between sending each packet"),
+      &ping);
   if (ac != 2) {
     char outBuffer[1500] = {0};
     getStrUsage(outBuffer, cmdLineParser);
-    exitProgram(outBuffer, 2, false);
+    exitProgram(outBuffer, 2, false, &ping);
     return 1;
   }
 
-  t_rawSocket* rawSocket = initializeRawSocket(av[1]);
-  t_ping ping;
+
+  initializeRawSocket(av[1], &ping);
   ping.packetSize = 84;
   ping.seqnum = 1;
-  ping.packet = galloc(ping.packetSize);
+  ping.packet = galloc(ping.packetSize, &ping);
   ping.stats.nbSend = 0;
   ping.stats.nbRecv = 0;
-  ping.stats.progDuration = initRTT();
-  ping.stats.rtts = galloc(sizeof(t_list*));
-  ping.rawSocket = rawSocket;
+  ping.stats.progDuration = initRTT(&ping);
+  ping.stats.rtts = galloc(sizeof(t_list*), &ping);
   *(ping.stats.rtts) = NULL;
   uint32_t timeToSleep = 1;
 
@@ -61,7 +68,7 @@ int main(const int ac, const char** av) {
     ssize_t nbBytesRecv = receivePacket(&ping, &ttl);
     if (nbBytesRecv == -1) {
       if (g_stop == 0) {
-        exitProgram("recvFrom() failed: ", errno, true);
+        exitProgram("recvFrom() failed: ", errno, true, &ping);
       } else {
         continue;
       }
@@ -70,5 +77,5 @@ int main(const int ac, const char** av) {
     sleep(timeToSleep);
   }
   printStats(&ping);
-  exitProgram("", EXIT_SUCCESS, false);
+  exitProgram("", EXIT_SUCCESS, false, &ping);
 }

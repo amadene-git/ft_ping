@@ -27,8 +27,9 @@ typedef struct s_cmdLineParser {
 t_cmdLineParser* initializeCmdLineParser(const char* programName,
                                          const char* description,
                                          const int argc,
-                                         const char** argv);
-void addOptionArg(t_cmdLineParser* cmdLineParser, t_optionArg optionArg);
+                                         const char** argv,
+                                         t_ping* ping);
+void addOptionArg(t_cmdLineParser* cmdLineParser, t_optionArg optionArg, t_ping* ping);
 t_optionArg createOption(const char shortName,
                          const char* longName,
                          const char* value,

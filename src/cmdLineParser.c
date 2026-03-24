@@ -4,22 +4,23 @@
 t_cmdLineParser* initializeCmdLineParser(const char* programName,
                                          const char* description,
                                          const int argc,
-                                         const char** argv) {
-  t_cmdLineParser* cmdLineParser = galloc(sizeof(t_cmdLineParser));
+                                         const char** argv,
+                                         t_ping* ping) {
+  t_cmdLineParser* cmdLineParser = galloc(sizeof(t_cmdLineParser), ping);
   cmdLineParser->_programName = programName;
   cmdLineParser->_description = description;
   cmdLineParser->_argc = argc;
   cmdLineParser->_argv = argv;
-  cmdLineParser->_optionArgs = galloc(sizeof(t_optionArg*));
+  cmdLineParser->_optionArgs = galloc(sizeof(t_optionArg*), ping);
   *(cmdLineParser->_optionArgs) = NULL;
 
   return cmdLineParser;
 }
 
-void addOptionArg(t_cmdLineParser* cmdLineParser, t_optionArg optionArg) {
-  t_optionArg* newOption = galloc(sizeof(t_optionArg));
+void addOptionArg(t_cmdLineParser* cmdLineParser, t_optionArg optionArg, t_ping* ping) {
+  t_optionArg* newOption = galloc(sizeof(t_optionArg), ping);
   *newOption = optionArg;
-  listPushFront(cmdLineParser->_optionArgs, listNewElem(newOption));
+  listPushFront(cmdLineParser->_optionArgs, listNewElem(newOption, ping), ping);
 }
 
 t_optionArg createOption(const char shortName,

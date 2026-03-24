@@ -7,8 +7,8 @@ uint64_t computeLossPercent(t_stats stats) {
   return ((stats.nbSend - stats.nbRecv) * 100) / stats.nbSend;
 }
 
-uint64_t getProgramDuration(t_RTT* progDuration) {
-  computeRTT(progDuration);
+uint64_t getProgramDuration(t_RTT* progDuration, t_ping* ping) {
+  computeRTT(progDuration, ping);
   return timevalToMs(progDuration->result);
 }
 

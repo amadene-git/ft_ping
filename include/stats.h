@@ -19,7 +19,7 @@ typedef struct s_stats {
 } t_stats;
 
 uint64_t computeLossPercent(t_stats stats);
-uint64_t getProgramDuration(t_RTT* progDuration);
+uint64_t getProgramDuration(t_RTT* progDuration, t_ping* ping);
 t_microsec getMinRtt(t_list* rtts);
 t_microsec getMaxRtt(t_list* rtts);
 t_microsec getAverageRtt(t_list* rtts);

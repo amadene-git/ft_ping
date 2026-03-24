@@ -8,12 +8,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-void exitProgram(const char* message, int code, bool hasErrno);
+void exitProgram(const char* message, int code, bool hasErrno, t_ping* ping);
 
 void printFirstLog(t_ping* ping);
 void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl);
 void printStats(t_ping* ping);
 
-char* ft_strdup(const char* s);
+char* ft_strdup(const char* s, t_ping* ping);
 
 #endif
