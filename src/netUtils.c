@@ -10,6 +10,10 @@ void initializeRawSocket(const char* hostname, t_ping* ping) {
   if ((ping->sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
     exitProgram("socket() failed", errno, true, ping);
   }
+  struct timeval recvTimeout = {FT_PING_RECV_TIMEOUT_SEC, 0};
+  if (setsockopt(ping->sockfd, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout, sizeof(recvTimeout)) == -1) {
+    exitProgram("setsockopt() failed", errno, true, ping);
+  }
   ping->rawSocket->_hostname = ft_strdup(hostname, ping);
 
   resolveDNS(ping);
@@ -151,6 +155,9 @@ ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
       exitProgram("Receive no ping reply", EXIT_FAILURE, false, ping);
     }
     if (nbBytesRecv == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        return 0;
+      }
       return -1;
     }
 

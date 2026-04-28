@@ -70,6 +70,13 @@ int main(const int ac, const char** av) {
         continue;
       }
     }
+    if (nbBytesRecv == 0) {
+      if (*ping.stats.rtts) {
+        *ping.stats.rtts = (*ping.stats.rtts)->next;
+      }
+      ++ping.seqnum;
+      continue;
+    }
     printLog(&ping, nbBytesRecv, ttl);
     sleep(timeToSleep);
   }

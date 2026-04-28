@@ -59,6 +59,9 @@ void printStats(t_ping* ping) {
   printf("%lu received, ", ping->stats.nbRecv);
   printf("%lu%% packet loss, ", computeLossPercent(ping->stats));
   printf("time %lums\n", getProgramDuration(&ping->stats.progDuration, ping));
+  if (ping->stats.nbRecv == 0 || *ping->stats.rtts == NULL) {
+    return;
+  }
   printf("rtt min/avg/max/mdev = ");
 
   t_microsec min = getMinRtt(*ping->stats.rtts);

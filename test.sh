@@ -182,6 +182,44 @@ test_rogue_echo_reply_is_ignored() {
   fi
 }
 
+test_unanswered_target_does_not_block_after_first_packet() {
+  local target="${NO_REPLY_TARGET:-192.0.2.123}"
+  local output_file="$TMP_DIR/no-reply.out"
+  local transmitted
+
+  timeout -s INT -k 1s 4s "${PING_CMD[@]}" "$target" >"$output_file" 2>&1
+
+  if grep -q 'sendTo() failed' "$output_file"; then
+    skip "no-reply timeout test target is not sendable: $target"
+    return
+  fi
+  if grep -q 'bytes from' "$output_file"; then
+    skip "no-reply timeout test target answered: $target"
+    return
+  fi
+
+  transmitted="$(sed -n 's/^\([0-9][0-9]*\) packets transmitted,.*/\1/p' "$output_file")"
+  if [ -z "$transmitted" ]; then
+    fail 'no-reply timeout test did not print packet statistics'
+    show_file_on_failure "$output_file"
+    return
+  fi
+
+  if [ "$transmitted" -ge 2 ]; then
+    pass 'unanswered target does not block after the first packet'
+  else
+    fail 'unanswered target blocks in recvfrom() after the first packet'
+    show_file_on_failure "$output_file"
+  fi
+
+  if grep -q '^rtt min/avg/max/mdev' "$output_file"; then
+    fail 'unanswered target reports RTT stats despite receiving no replies'
+    show_file_on_failure "$output_file"
+  else
+    pass 'unanswered target does not report RTT stats without replies'
+  fi
+}
+
 need_cmd make
 need_cmd timeout
 need_cmd stdbuf
@@ -199,6 +237,7 @@ select_python_command
 printf '%sUsing ft_ping command:%s %s\n' "$BOLD" "$RESET" "${PING_CMD[*]}"
 test_localhost_ping
 test_rogue_echo_reply_is_ignored
+test_unanswered_target_does_not_block_after_first_packet
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '%s%d test(s) failed.%s\n' "$RED" "$FAILURES" "$RESET"

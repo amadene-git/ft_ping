@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #define FT_PING_PAYLOAD_SIZE 56
+#define FT_PING_RECV_TIMEOUT_SEC 1
 
 typedef struct s_rawSocket {
   struct sockaddr_in _sockAddr;

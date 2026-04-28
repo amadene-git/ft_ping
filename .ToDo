@@ -42,7 +42,6 @@ faire un recv nonbloqant (timeout)
 -a (sound a recept)
 
 
-High - src/netUtils.c (line 105): il n’y a pas de timeout sur recvfrom(). Si la cible droppe l’ICMP, le programme bloque après un seul sendto() et ne peut pas mesurer de packet loss correctement. Un SO_RCVTIMEO, select/poll, ou une boucle avec alarm/timer serait nécessaire.
 
 Medium - src/main.c (line 37): -c et -i sont affichées dans l’aide mais jamais parsées ni appliquées. Pire, main.c (line 41) rejette tout argc != 2, donc ./ft_ping -c 3 127.0.0.1 affiche juste l’aide. J’ai reproduit ce comportement.
 
