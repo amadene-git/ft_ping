@@ -1,8 +1,4 @@
 
-## LIBFT
-Faire un CommandLine parser
-Faire un GarbageCollector
-
 ## ping Client
 https://www.frameip.com/entete-icmp/
 
@@ -44,45 +40,5 @@ faire un recv nonbloqant (timeout)
 -i interval
 -I interface
 -a (sound a recept)
-
-
-
-
-#refaire les Makefiles (relink)
-
-## ping Client
-https://www.frameip.com/entete-icmp/
-
-
-ctrl+\ (log intermediaire)
-installer vm
-do not resolve DNS ?
-
-
-creer fichier:
-net.h -> relatif au reseau (close())
-         check contenu du reply (checksum)
-arg.h -> avec les arguments:
-            -? (--help)
-            -V (verbose)
-
-
-
-error:
-./ft_ping 226.0.0.1
-
-
-
-bonus:
-faire un recv nonbloqant (timeout)
--s packetsize
--S sndbuf
--t ttl
--W timeout
--c count
--i interval
--I interface
--a (sound a recept)
-
 
 
