@@ -42,3 +42,23 @@ faire un recv nonbloqant (timeout)
 -a (sound a recept)
 
 
+High - src/main.c (line 49): packetSize = 84 mélange taille IP + ICMP, mais avec socket(AF_INET, SOCK_RAW, IPPROTO_ICMP), le buffer envoyé à sendto (line 90) est l’ICMP payload, pas un paquet IP complet. Du coup l’affichage soustrait un header IP inexistant utils.c (line 25), et le buffer de réception de 84 bytes netUtils.c (line 103) risque de tronquer les réponses.
+
+High - src/netUtils.c (line 105): il n’y a pas de timeout sur recvfrom(). Si la cible droppe l’ICMP, le programme bloque après un seul sendto() et ne peut pas mesurer de packet loss correctement. Un SO_RCVTIMEO, select/poll, ou une boucle avec alarm/timer serait nécessaire.
+
+Medium - src/main.c (line 37): -c et -i sont affichées dans l’aide mais jamais parsées ni appliquées. Pire, main.c (line 41) rejette tout argc != 2, donc ./ft_ping -c 3 127.0.0.1 affiche juste l’aide. J’ai reproduit ce comportement.
+
+Medium - src/netUtils.c (line 28): résultat de getaddrinfo() libéré avec free(result) au lieu de freeaddrinfo(result). Même zone: sprintf(buffer, ...) dans un buffer de 100 bytes netUtils.c (line 31) peut overflow avec un hostname long, et strncpy(..., 15) netUtils.c (line 39) peut laisser _ipAddress sans \0.
+
+Medium - src/stats.c (line 7): computeLossPercent() divise par nbSend sans guard. Avec un SIGINT avant le premier envoi, printStats() peut diviser par zéro puis déréférencer une liste RTT vide via utils.c (line 63). Aussi, netUtils.c (line 111) calcule un RTT même si recvfrom() retourne -1.
+
+Notes rapides
+
+include/netUtils.h (line 29) déclare icmp_checksum, mais l’implémentation s’appelle icmpChecksum src/netUtils.c (line 61).
+include/list.h (line 14) déclare freeGarbage() sans paramètre, mais l’implémentation prend t_ping*.
+Le Docker run actuel ne donne pas CAP_NET_RAW, donc ./ft_ping 127.0.0.1 échoue avec Operation not permitted dans mon environnement.
+Vérifié
+
+make passe avec -Wall -Wextra -Werror.
+valgrind ./ft_ping sur le chemin “aide” ne signale pas de fuite.
+Je n’ai pas pu tester un vrai ping ICMP sans privilège raw socket

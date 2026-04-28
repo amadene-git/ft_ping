@@ -18,7 +18,6 @@ CFLAGS 		= -Wall -Wextra -Werror -MMD -MP -g
 INCLUDES 	= -I include
 
 all				: $(NAME)
-					sudo setcap cap_net_raw+ep ./ft_ping
 $(NAME)			: $(OBJ_DIR) $(OBJS)
 					$(CC) $(CFLAGS) $(OBJS) -o $@ -lm
 $(OBJ_DIR)		:

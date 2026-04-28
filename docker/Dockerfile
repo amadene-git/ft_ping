@@ -17,6 +17,8 @@ RUN apt-get update \
     build-essential \
     sudo \
     libcap2-bin \
+    hping3 \
+    python3 \
     wget
 
 RUN groupadd -g ${GID} ${USER} \

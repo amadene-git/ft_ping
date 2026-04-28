@@ -25,8 +25,8 @@ typedef struct s_ping t_ping;
 
 void initializeRawSocket(const char* hostname, t_ping* ping);
 int resolveDNS(t_ping* ping);
-void* buildIcmpHeader(void* hdrPtr);
-void icmp_checksum(const void* packet, int len);
+void* buildIcmpHeader(void* hdrPtr, uint16_t seqnum);
+void icmpChecksum(const void* packet, int len);
 void sendPacket(t_ping* ping);
 ssize_t receivePacket(t_ping* ping, uint8_t* ttl);
 

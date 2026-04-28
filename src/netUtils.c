@@ -41,19 +41,16 @@ int resolveDNS(t_ping* ping) {
   return 0;
 }
 
-void* buildIcmpHeader(void* hdrPtr) {
+void* buildIcmpHeader(void* hdrPtr, uint16_t seqnum) {
   struct icmphdr* header = (struct icmphdr*)hdrPtr;
-  static uint16_t seqno = 0;
 
   header->type = ICMP_ECHO;
-  header->code = 0;  // network unreachable
-  // header->code = 1;// host unreachable
-  // header->code = 3;// port unreachable
+  header->code = 0;
 
   header->checksum = 0;
 
-  header->un.echo.id = getpid();
-  header->un.echo.sequence = seqno++;
+  header->un.echo.id = htons((uint16_t)getpid());
+  header->un.echo.sequence = htons(seqnum);
 
   return hdrPtr + sizeof(struct icmphdr);
 }
@@ -80,7 +77,7 @@ void icmpChecksum(const void* packet, int len) {
 
 void sendPacket(t_ping* ping) {
   bzero(ping->packet, ping->packetSize);
-  buildIcmpHeader(ping->packet);
+  buildIcmpHeader(ping->packet, ping->seqnum);
   icmpChecksum(ping->packet, ping->packetSize);
 
   t_RTT* rtt = galloc(sizeof(t_RTT), ping);
@@ -99,25 +96,65 @@ void sendPacket(t_ping* ping) {
   ++ping->stats.nbSend;
 }
 
+static int isExpectedEchoReply(t_ping* ping,
+                               const uint8_t* recvBuffer,
+                               ssize_t nbBytesRecv,
+                               const struct sockaddr_in* recvAddr,
+                               uint8_t* ttl) {
+  if ((size_t)nbBytesRecv < sizeof(struct iphdr)) {
+    return 0;
+  }
+
+  const struct iphdr* ipHeader = (const struct iphdr*)recvBuffer;
+  size_t ipHeaderLen = ipHeader->ihl * 4;
+  if (ipHeader->version != 4 || ipHeaderLen < sizeof(struct iphdr) ||
+      (size_t)nbBytesRecv < ipHeaderLen + sizeof(struct icmphdr)) {
+    return 0;
+  }
+
+  if (recvAddr->sin_addr.s_addr != ping->rawSocket->_sockAddr.sin_addr.s_addr ||
+      ipHeader->saddr != ping->rawSocket->_sockAddr.sin_addr.s_addr) {
+    return 0;
+  }
+
+  const struct icmphdr* icmpHeader = (const struct icmphdr*)(recvBuffer + ipHeaderLen);
+  if (icmpHeader->type != ICMP_ECHOREPLY || icmpHeader->code != 0) {
+    return 0;
+  }
+
+  if (ntohs(icmpHeader->un.echo.id) != (uint16_t)getpid()) {
+    return 0;
+  }
+  if (ntohs(icmpHeader->un.echo.sequence) != (uint16_t)ping->seqnum) {
+    return 0;
+  }
+
+  *ttl = ipHeader->ttl;
+  return 1;
+}
+
 ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
-  char recvBuffer[ping->packetSize];
-  bzero(recvBuffer, ping->packetSize);
-  ssize_t nbBytesRecv = recvfrom(ping->sockfd,
-                                 recvBuffer,
-                                 ping->packetSize,
-                                 0,
-                                 (struct sockaddr*)(&ping->rawSocket->_sockAddr),
-                                 &ping->rawSocket->_socklen);
-  computeRTT((t_RTT*)((*ping->stats.rtts)->data), ping);
-  if (nbBytesRecv == 0) {
-    exitProgram("Receive no ping reply", EXIT_FAILURE, false, ping);
-  }
-  if (nbBytesRecv == -1) {
-    return -1;
-  }
+  uint8_t recvBuffer[IP_MAXPACKET];
 
-  ++ping->stats.nbRecv;
-  *ttl = ((struct iphdr*)recvBuffer)->ttl;
+  while (1) {
+    struct sockaddr_in recvAddr;
+    socklen_t recvLen = sizeof(recvAddr);
+    bzero(recvBuffer, sizeof(recvBuffer));
+    bzero(&recvAddr, sizeof(recvAddr));
 
-  return nbBytesRecv;
+    ssize_t nbBytesRecv =
+        recvfrom(ping->sockfd, recvBuffer, sizeof(recvBuffer), 0, (struct sockaddr*)(&recvAddr), &recvLen);
+    if (nbBytesRecv == 0) {
+      exitProgram("Receive no ping reply", EXIT_FAILURE, false, ping);
+    }
+    if (nbBytesRecv == -1) {
+      return -1;
+    }
+
+    if (isExpectedEchoReply(ping, recvBuffer, nbBytesRecv, &recvAddr, ttl)) {
+      computeRTT((t_RTT*)((*ping->stats.rtts)->data), ping);
+      ++ping->stats.nbRecv;
+      return nbBytesRecv;
+    }
+  }
 }
