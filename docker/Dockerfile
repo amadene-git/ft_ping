@@ -16,6 +16,7 @@ RUN apt-get update \
     git \
     build-essential \
     sudo \
+    libcap2-bin \
     wget
 
 RUN groupadd -g ${GID} ${USER} \
