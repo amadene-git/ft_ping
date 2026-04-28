@@ -46,7 +46,7 @@ int main(const int ac, const char** av) {
   }
 
   initializeRawSocket(av[1], &ping);
-  ping.packetSize = 84;
+  ping.packetSize = sizeof(struct icmphdr) + FT_PING_PAYLOAD_SIZE;
   ping.seqnum = 1;
   ping.packet = galloc(ping.packetSize, &ping);
   ping.stats.nbSend = 0;

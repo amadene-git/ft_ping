@@ -22,18 +22,19 @@ void exitProgram(const char* message, int code, bool hasErrno, t_ping* ping) {
 }
 
 void printFirstLog(t_ping* ping) {
-  static const size_t HEADERS_SIZE = sizeof(struct iphdr) + sizeof(struct icmphdr);
+  static const size_t ICMP_HEADER_SIZE = sizeof(struct icmphdr);
+  static const size_t IP_HEADER_SIZE = sizeof(struct iphdr);
 
-  printf("FT_PING %s (%s) %lu(%lu) bytes of data.\n",
+  printf("FT_PING %s (%s) %zu(%zu) bytes of data.\n",
          ping->rawSocket->_hostname,
          &ping->rawSocket->_ipAddress[0],
-         ping->packetSize - HEADERS_SIZE,
-         ping->packetSize);
+         ping->packetSize - ICMP_HEADER_SIZE,
+         ping->packetSize + IP_HEADER_SIZE);
 }
 void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
   t_microsec rtt = timevalToUs(((t_RTT*)(*ping->stats.rtts)->data)->result);
   if (strcmp(ping->rawSocket->_hostname, ping->rawSocket->_ipAddress)) {
-    printf("%lu bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
+    printf("%zd bytes from %s (%s): icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
            nbBytesRecv,
            ping->rawSocket->_hostname,
            ping->rawSocket->_ipAddress,
@@ -42,7 +43,7 @@ void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
            rtt / 1000,
            rtt % 1000);
   } else {
-    printf("%lu bytes from %s: icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
+    printf("%zd bytes from %s: icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
            nbBytesRecv,
            ping->rawSocket->_hostname,
            ping->seqnum++,

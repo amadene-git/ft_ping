@@ -111,6 +111,9 @@ static int isExpectedEchoReply(t_ping* ping,
       (size_t)nbBytesRecv < ipHeaderLen + sizeof(struct icmphdr)) {
     return 0;
   }
+  if ((size_t)nbBytesRecv < ipHeaderLen + ping->packetSize) {
+    return 0;
+  }
 
   if (recvAddr->sin_addr.s_addr != ping->rawSocket->_sockAddr.sin_addr.s_addr ||
       ipHeader->saddr != ping->rawSocket->_sockAddr.sin_addr.s_addr) {
@@ -152,9 +155,10 @@ ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
     }
 
     if (isExpectedEchoReply(ping, recvBuffer, nbBytesRecv, &recvAddr, ttl)) {
+      size_t ipHeaderLen = ((const struct iphdr*)recvBuffer)->ihl * 4;
       computeRTT((t_RTT*)((*ping->stats.rtts)->data), ping);
       ++ping->stats.nbRecv;
-      return nbBytesRecv;
+      return nbBytesRecv - (ssize_t)ipHeaderLen;
     }
   }
 }

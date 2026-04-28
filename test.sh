@@ -93,6 +93,20 @@ test_localhost_ping() {
   local output_file="$TMP_DIR/localhost.out"
 
   timeout -s INT -k 1s 3s "${PING_CMD[@]}" 127.0.0.1 >"$output_file" 2>&1
+  if grep -Eq '^FT_PING 127\.0\.0\.1 \(127\.0\.0\.1\) 56\(84\) bytes of data\.$' "$output_file"; then
+    pass 'localhost header reports 56 data bytes and 84 total bytes'
+  else
+    fail 'localhost header does not report 56(84) bytes'
+    show_file_on_failure "$output_file"
+  fi
+
+  if grep -Eq '^64 bytes from 127\.0\.0\.1: icmp_seq=1 ' "$output_file"; then
+    pass 'localhost echo reply reports 64 ICMP bytes'
+  else
+    fail 'localhost echo reply does not report 64 ICMP bytes'
+    show_file_on_failure "$output_file"
+  fi
+
   if grep -Eq 'bytes from .*127\.0\.0\.1.*icmp_seq=' "$output_file"; then
     pass 'localhost echo reply is accepted'
   else
