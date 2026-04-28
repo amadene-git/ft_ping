@@ -24,12 +24,12 @@ typedef struct s_cmdLineParser {
   t_list** _optionArgs;
 } t_cmdLineParser;
 
-t_cmdLineParser* initializeCmdLineParser(const char* programName,
-                                         const char* description,
-                                         const int argc,
-                                         const char** argv,
-                                         t_ping* ping);
-void addOptionArg(t_cmdLineParser* cmdLineParser, t_optionArg optionArg, t_ping* ping);
+void initializeCmdLineParser(const char* programName,
+                             const char* description,
+                             const int argc,
+                             const char** argv,
+                             t_ping* ping);
+void addOptionArg(t_optionArg optionArg, t_ping* ping);
 t_optionArg createOption(const char shortName,
                          const char* longName,
                          const char* value,
@@ -37,6 +37,7 @@ t_optionArg createOption(const char shortName,
                          const e_type type,
                          const bool isRequired,
                          const char* description);
-void getStrUsage(char* outBuffer, t_cmdLineParser* cmdLineParser);
+void getStrHelp(char* outBuffer, t_cmdLineParser* cmdLineParser);
+const char* getOptionValue(const char* optionName, t_ping* ping);
 
 #endif

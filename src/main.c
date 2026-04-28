@@ -27,26 +27,23 @@ void initializeSignal() {
 }
 
 int main(const int ac, const char** av) {
+  initializeSignal();
+
   t_ping ping;
   ping.garbage = NULL;
+  ping.sockfd = -1;
 
-  initializeSignal();
-  t_cmdLineParser* cmdLineParser =
-      initializeCmdLineParser("ft_ping", "Small project for 42 School that recreates the ping command.", ac, av, &ping);
-  addOptionArg(cmdLineParser,
-               createOption('c', "count", NULL, NULL, ULONG, false, "stop after sending NUMBER packets"),
-               &ping);
+  initializeCmdLineParser("ft_ping", "Small project for 42 School that recreates the ping command.", ac, av, &ping);
+  addOptionArg(createOption('c', "count", NULL, NULL, ULONG, false, "stop after sending NUMBER packets"), &ping);
   addOptionArg(
-      cmdLineParser,
       createOption('i', "interval", NULL, NULL, ULONG, false, "wait NUMBER seconds between sending each packet"),
       &ping);
   if (ac != 2) {
     char outBuffer[1500] = {0};
-    getStrUsage(outBuffer, cmdLineParser);
+    getStrHelp(outBuffer, ping.cmdLineParser);
     exitProgram(outBuffer, 2, false, &ping);
     return 1;
   }
-
 
   initializeRawSocket(av[1], &ping);
   ping.packetSize = 84;

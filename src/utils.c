@@ -14,6 +14,9 @@ void exitProgram(const char* message, int code, bool hasErrno, t_ping* ping) {
     if (hasErrno) dprintf(2, " (errno: %s)", strerror(errno));
     dprintf(2, "\n");
   }
+  if (ping->sockfd != -1) {
+    close(ping->sockfd);
+  }
   freeGarbage(ping);
   exit(code);
 }

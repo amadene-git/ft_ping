@@ -3,12 +3,11 @@
 #include <utils.h>
 
 typedef struct s_socketCLient {
-
-}t_socketCLient;
+} t_socketCLient;
 
 void initializeRawSocket(const char* hostname, t_ping* ping) {
   ping->rawSocket = galloc(sizeof(t_rawSocket), ping);
-  if ((ping->rawSocket->_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
+  if ((ping->sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) == -1) {
     exitProgram("socket() failed", errno, true, ping);
   }
   ping->rawSocket->_hostname = ft_strdup(hostname, ping);
@@ -88,7 +87,7 @@ void sendPacket(t_ping* ping) {
   listPushFront(ping->stats.rtts, listNewElem(rtt, ping), ping);
 
   *rtt = initRTT(ping);
-  if ((size_t)sendto(ping->rawSocket->_sockfd,
+  if ((size_t)sendto(ping->sockfd,
                      ping->packet,
                      ping->packetSize,
                      MSG_CONFIRM,
@@ -103,7 +102,7 @@ void sendPacket(t_ping* ping) {
 ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
   char recvBuffer[ping->packetSize];
   bzero(recvBuffer, ping->packetSize);
-  ssize_t nbBytesRecv = recvfrom(ping->rawSocket->_sockfd,
+  ssize_t nbBytesRecv = recvfrom(ping->sockfd,
                                  recvBuffer,
                                  ping->packetSize,
                                  0,

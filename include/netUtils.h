@@ -15,7 +15,6 @@
 #include <unistd.h>
 
 typedef struct s_rawSocket {
-  int _sockfd;
   struct sockaddr_in _sockAddr;
   socklen_t _socklen;
   char _ipAddress[16];

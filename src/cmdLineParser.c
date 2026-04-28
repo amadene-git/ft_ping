@@ -1,26 +1,25 @@
 #include <cmdLineParser.h>
+#include <ft_ping.h>
 #include <stdio.h>
 
-t_cmdLineParser* initializeCmdLineParser(const char* programName,
-                                         const char* description,
-                                         const int argc,
-                                         const char** argv,
-                                         t_ping* ping) {
-  t_cmdLineParser* cmdLineParser = galloc(sizeof(t_cmdLineParser), ping);
-  cmdLineParser->_programName = programName;
-  cmdLineParser->_description = description;
-  cmdLineParser->_argc = argc;
-  cmdLineParser->_argv = argv;
-  cmdLineParser->_optionArgs = galloc(sizeof(t_optionArg*), ping);
-  *(cmdLineParser->_optionArgs) = NULL;
-
-  return cmdLineParser;
+void initializeCmdLineParser(const char* programName,
+                             const char* description,
+                             const int argc,
+                             const char** argv,
+                             t_ping* ping) {
+  ping->cmdLineParser = galloc(sizeof(t_cmdLineParser), ping);
+  ping->cmdLineParser->_programName = programName;
+  ping->cmdLineParser->_description = description;
+  ping->cmdLineParser->_argc = argc;
+  ping->cmdLineParser->_argv = argv;
+  ping->cmdLineParser->_optionArgs = galloc(sizeof(t_optionArg*), ping);
+  *(ping->cmdLineParser->_optionArgs) = NULL;
 }
 
-void addOptionArg(t_cmdLineParser* cmdLineParser, t_optionArg optionArg, t_ping* ping) {
+void addOptionArg(t_optionArg optionArg, t_ping* ping) {
   t_optionArg* newOption = galloc(sizeof(t_optionArg), ping);
   *newOption = optionArg;
-  listPushFront(cmdLineParser->_optionArgs, listNewElem(newOption, ping), ping);
+  listPushFront(ping->cmdLineParser->_optionArgs, listNewElem(newOption, ping), ping);
 }
 
 t_optionArg createOption(const char shortName,
@@ -41,7 +40,7 @@ t_optionArg createOption(const char shortName,
   return option;
 }
 
-void getStrUsage(char* outBuffer, t_cmdLineParser* cmdLineParser) {
+void getStrHelp(char* outBuffer, t_cmdLineParser* cmdLineParser) {
   int offset = 0;
   offset += sprintf(outBuffer + offset, "Usage:\n");
   offset += sprintf(outBuffer + offset, "\t./%s [OPTIONS] destination\n\n", cmdLineParser->_programName);
@@ -59,11 +58,23 @@ void getStrUsage(char* outBuffer, t_cmdLineParser* cmdLineParser) {
     } else {
       offset += sprintf(outBuffer + offset, "      ");
     }
-    offset += sprintf(outBuffer + offset, "--%s", option._longName);
+    offset += sprintf(outBuffer + offset, "--%-10s", option._longName);
     offset += sprintf(outBuffer + offset, "\t\t%s", option._description);
     if (option._isRequired) {
       offset += sprintf(outBuffer + offset, "\t\tREQUIRED");
     }
     elem = elem->next;
+    offset += sprintf(outBuffer + offset, "\n");
   }
+}
+
+const char* getOptionValue(const char* optionName, t_ping* ping) {
+  t_list* elem = *ping->cmdLineParser->_optionArgs;
+  while (elem) {
+    if (strcmp(((t_optionArg*)elem->data)->_longName, optionName) == 0) {
+      return ((t_optionArg*)elem->data)->_value;
+    }
+    elem = elem->next;
+  }
+  return NULL;
 }
