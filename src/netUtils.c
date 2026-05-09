@@ -32,7 +32,7 @@ int resolveDNS(t_ping* ping) {
   int ret = getaddrinfo(ping->rawSocket->_hostname, NULL, &hints, &result);
   if (ret != 0 || result == NULL) {
     char buffer[100] = {0};
-    sprintf(buffer, "ft_ping: %s: Nom ou service inconnu", ping->rawSocket->_hostname);
+    sprintf(buffer, "ft_ping: unknown host");
     exitProgram(buffer, 2, false, ping);
   }
   ping->rawSocket->_sockAddr = *(struct sockaddr_in*)result->ai_addr;

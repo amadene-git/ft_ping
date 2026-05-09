@@ -6,6 +6,7 @@
 
 // std
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 
 typedef struct s_rawSocket t_rawSocket;
@@ -14,6 +15,7 @@ typedef struct s_cmdLineParser t_cmdLineParser;
 typedef struct s_ping {
   size_t packetSize;
   char* packet;
+  bool verbose;
   uint64_t seqnum;
   t_stats stats;
   int sockfd;

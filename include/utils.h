@@ -15,5 +15,7 @@ void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl);
 void printStats(t_ping* ping);
 
 char* ft_strdup(const char* s, t_ping* ping);
+const char* parseCommandLine(const int ac, const char** av, t_ping* ping);
+
 
 #endif

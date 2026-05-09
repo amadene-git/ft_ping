@@ -1,4 +1,3 @@
-#include <cmdLineParser.h>
 #include <ft_ping.h>
 #include <list.h>
 #include <netUtils.h>
@@ -26,28 +25,18 @@ void initializeSignal() {
   sigaction(SIGINT, &sa, NULL);
 }
 
-int main(const int ac, const char** av) {
-  initializeSignal();
 
+int main(const int ac, const char** av) {
   t_ping ping;
   ping.garbage = NULL;
   ping.sockfd = -1;
 
-  initializeCmdLineParser("ft_ping", "Small project for 42 School that recreates the ping command.", ac, av, &ping);
-  addOptionArg(createOption('c', "count", NULL, NULL, ULONG, false, "stop after sending NUMBER packets"), &ping);
-  addOptionArg(
-      createOption('i', "interval", NULL, NULL, ULONG, false, "wait NUMBER seconds between sending each packet"),
-      &ping);
-  if (ac != 2) {
-    char outBuffer[1500] = {0};
-    getStrHelp(outBuffer, ping.cmdLineParser);
-    exitProgram(outBuffer, 2, false, &ping);
-    return 1;
-  }
+  const char* hostname = parseCommandLine(ac, av, &ping);
+  initializeSignal();
 
-  initializeRawSocket(av[1], &ping);
+  initializeRawSocket(hostname, &ping);
   ping.packetSize = sizeof(struct icmphdr) + FT_PING_PAYLOAD_SIZE;
-  ping.seqnum = 1;
+  ping.seqnum = 0;
   ping.packet = galloc(ping.packetSize, &ping);
   ping.stats.nbSend = 0;
   ping.stats.nbRecv = 0;

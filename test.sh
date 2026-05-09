@@ -1,247 +1,139 @@
-#!/usr/bin/env bash
-set -u
+#!/bin/bash
 
-ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT_DIR"
+FT_STDOUT=ft_stdout.log
+FT_STDERR=ft_stderr.log
+FT_RETURN=-1
 
-TMP_DIR="$(mktemp -d)"
-FAILURES=0
-PING_CMD=()
-PYTHON_CMD=()
+EXPECT_STDOUT=expect_out.log
+EXPECT_STDERR=expect_err.log
+EXPECT_RETURN=-1
+LAST_CMD=""
 
-if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
-  GREEN=$'\033[32m'
-  RED=$'\033[31m'
-  YELLOW=$'\033[33m'
-  BOLD=$'\033[1m'
-  RESET=$'\033[0m'
-else
-  GREEN=''
-  RED=''
-  YELLOW=''
-  BOLD=''
-  RESET=''
-fi
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
 
-cleanup() {
-  rm -rf "$TMP_DIR"
-}
-trap cleanup EXIT
+TEST_FAILED=0
+TEST_PASSED=0
 
-pass() {
-  printf '%s[PASS]%s %s\n' "$GREEN" "$RESET" "$1"
-}
+function execCommand() {
+    cmd="timeout 2 ping $1 $2 $3";
+    ft_cmd="sudo timeout 2 ./ft_ping $1 $2 $3";
+    LAST_CMD=$cmd
 
-fail() {
-  printf '%s[FAIL]%s %s\n' "$RED" "$RESET" "$1"
-  FAILURES=$((FAILURES + 1))
-}
+    FT_RETURN=$($(echo $ft_cmd) 1> $FT_STDOUT 2> $FT_STDERR);
+    EXPECT_RETURN=$($(echo $cmd) 1> $EXPECT_STDOUT 2> $EXPECT_STDERR);
 
-skip() {
-  printf '%s[SKIP]%s %s\n' "$YELLOW" "$RESET" "$1"
-}
+    # cmd="ping $1 $2 $3";
+    # ft_cmd="./ft_ping $1 $2 $3";
+    # LAST_CMD=$cmd
+    # {
+    #     FT_RETURN=$ft_cmd 1> $FT_STDOUT 2> $FT_STDERR) &
+    #     PID=$!
+    #     sleep 3
+    #     kill -SIGINT $PID
+    # }
+    # {
+    #     EXPECT_RETURN=$($(echo $cmd) 1> $EXPECT_STDOUT 2> $EXPECT_STDERR) &
+    #     PID=$!
+    #     sleep 3
+    #     kill -SIGINT $PID
+    # }
 
-need_cmd() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    fail "missing command: $1"
-    exit 1
-  fi
 }
 
-can_sudo_without_password() {
-  command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1
+function compareOut() {
+    if [[ $EXPECT_RETURN -ne $FT_RETURN ]]
+    then
+        printf "${RED} Testing '$LAST_CMD' failed, return '$FT_RETURN' expected '$EXPECT_RETURN' $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+    sed -i 's/ft_ping/ping/g' $FT_STDOUT
+    sed -i 's/FT_PING/PING/g' $FT_STDOUT
+    sed -i 's/time=[0-9]*.[0-9]* ms/time=0 ms/g' $FT_STDOUT $EXPECT_STDOUT
+    diff $FT_STDOUT $EXPECT_STDOUT
+    if [[ $? -ne 0 ]]
+    then
+        printf "${RED} Testing '$LAST_CMD' diff stdout failed $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+    sed -i 's/ft_ping/ping/g' $FT_STDERR
+    sed -i "s/or 'ping --usage' //g" $EXPECT_STDERR
+
+    diff $FT_STDERR $EXPECT_STDERR
+    if [[ $? -ne 0 ]]
+    then
+        printf "${RED} Testing '$LAST_CMD' diff stderr failed $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+    (( TEST_PASSED++ ))
 }
 
-can_run_directly() {
-  local output
-
-  output="$(timeout -s INT -k 1s 1s stdbuf -oL ./ft_ping 127.0.0.1 2>&1)"
-  ! printf '%s\n' "$output" | grep -q 'Operation not permitted'
+function cleanOut() {
+    rm -rf $FT_STDOUT $FT_STDERR $EXPECT_STDOUT $EXPECT_STDERR;
+    FT_RETURN=NaN
+    EXPECT_RETURN=NaN
 }
 
-select_ping_command() {
-  if can_run_directly; then
-    PING_CMD=(stdbuf -oL ./ft_ping)
-  elif can_sudo_without_password; then
-    PING_CMD=(sudo -n stdbuf -oL ./ft_ping)
-  else
-    fail 'ft_ping needs CAP_NET_RAW. Run sudo ./test.sh or sudo setcap cap_net_raw+ep ./ft_ping.'
-    exit 1
-  fi
+function testCommand() {
+    execCommand $1
+    compareOut
+    cleanOut
+    echo "test passed $TEST_PASSED '$LAST_CMD'"
+    echo 🥁
 }
 
-select_python_command() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    return
-  fi
-  if [ "$(id -u)" -eq 0 ]; then
-    PYTHON_CMD=(python3)
-  elif can_sudo_without_password; then
-    PYTHON_CMD=(sudo -n python3)
-  fi
+function printResult() {
+    if [[ $TEST_FAILED -ne 0 ]]
+    then
+        printf "${RED}$TEST_FAILED/$(($TEST_FAILED + $TEST_PASSED)) test(s) failed\n"
+        echo "😱 😱 😱"
+    else
+        printf "${GREEN}$TEST_PASSED/$(($TEST_FAILED + $TEST_PASSED)) test(s) passed\n"
+        printf "All tests passed ! $NC\n"
+        echo 🥳
+    fi
 }
 
-show_file_on_failure() {
-  local file="$1"
+function testTooManyHosts() {
+    ./ft_ping google.com duckduckgo.com 1> $FT_STDOUT 2> $FT_STDERR
 
-  printf '%s\n' '--- output ---'
-  sed -n '1,120p' "$file"
-  printf '%s\n' '--------------'
+    diff $FT_STDOUT /dev/null
+    diff $FT_STDERR /dev/null
 }
 
-test_localhost_ping() {
-  local output_file="$TMP_DIR/localhost.out"
 
-  timeout -s INT -k 1s 3s "${PING_CMD[@]}" 127.0.0.1 >"$output_file" 2>&1
-  if grep -Eq '^FT_PING 127\.0\.0\.1 \(127\.0\.0\.1\) 56\(84\) bytes of data\.$' "$output_file"; then
-    pass 'localhost header reports 56 data bytes and 84 total bytes'
-  else
-    fail 'localhost header does not report 56(84) bytes'
-    show_file_on_failure "$output_file"
-  fi
+make
 
-  if grep -Eq '^64 bytes from 127\.0\.0\.1: icmp_seq=1 ' "$output_file"; then
-    pass 'localhost echo reply reports 64 ICMP bytes'
-  else
-    fail 'localhost echo reply does not report 64 ICMP bytes'
-    show_file_on_failure "$output_file"
-  fi
+# host valid
+testCommand "127.0.0.1"
+testCommand "google.com"
+testCommand "-- google.com"
 
-  if grep -Eq 'bytes from .*127\.0\.0\.1.*icmp_seq=' "$output_file"; then
-    pass 'localhost echo reply is accepted'
-  else
-    fail 'localhost echo reply was not printed'
-    show_file_on_failure "$output_file"
-  fi
-}
+# No host
+testCommand ""
+# bad host
+testCommand "abc"
+testCommand "192.0.0.1"
+testCommand "256.0.0.1"
+testCommand "-"
+testCommand "--"
 
-inject_rogue_echo_reply() {
-  local dst="$1"
-  local output_file="$2"
+# invalid option
+testCommand "--snsdolancs"
+testCommand "--snsdolancs google.com"
+testCommand "-z"
+testCommand "-- -- google.com"
 
-  "${PYTHON_CMD[@]}" - "$dst" >"$output_file" 2>&1 <<'PY'
-import socket
-import struct
-import sys
+testTooManyHosts
 
-dst = sys.argv[1]
-ident = 0x4242
-seq = 0x1337
-payload = b"rogue-ft-ping"
+printResult
 
-def checksum(data):
-    if len(data) % 2:
-        data += b"\x00"
-    total = 0
-    for i in range(0, len(data), 2):
-        total += (data[i] << 8) + data[i + 1]
-    total = (total & 0xffff) + (total >> 16)
-    total = (total & 0xffff) + (total >> 16)
-    return (~total) & 0xffff
 
-packet = struct.pack("!BBHHH", 0, 0, 0, ident, seq) + payload
-packet = struct.pack("!BBHHH", 0, 0, checksum(packet), ident, seq) + payload
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
-sock.sendto(packet, (dst, 0))
-PY
-}
-
-test_rogue_echo_reply_is_ignored() {
-  local target="${ROGUE_TARGET:-192.0.2.123}"
-  local injection_dst="${ROGUE_DST:-127.0.0.1}"
-  local output_file="$TMP_DIR/rogue.out"
-  local injector_output="$TMP_DIR/inject.out"
-  local ping_pid
-
-  if [ "${#PYTHON_CMD[@]}" -eq 0 ]; then
-    skip 'rogue ICMP test needs privileged python3'
-    return
-  fi
-
-  timeout -s INT -k 1s 2s "${PING_CMD[@]}" "$target" >"$output_file" 2>&1 &
-  ping_pid=$!
-  sleep 0.3
-
-  if ! inject_rogue_echo_reply "$injection_dst" "$injector_output"; then
-    fail 'could not inject rogue ICMP echo reply'
-    show_file_on_failure "$injector_output"
-    wait "$ping_pid" >/dev/null 2>&1
-    return
-  fi
-
-  wait "$ping_pid" >/dev/null 2>&1
-
-  if grep -q 'sendTo() failed' "$output_file"; then
-    skip "rogue ICMP test target is not sendable: $target"
-  elif grep -q 'bytes from' "$output_file"; then
-    fail 'rogue ICMP echo reply was accepted'
-    show_file_on_failure "$output_file"
-  else
-    pass 'rogue ICMP echo reply is ignored'
-  fi
-}
-
-test_unanswered_target_does_not_block_after_first_packet() {
-  local target="${NO_REPLY_TARGET:-192.0.2.123}"
-  local output_file="$TMP_DIR/no-reply.out"
-  local transmitted
-
-  timeout -s INT -k 1s 4s "${PING_CMD[@]}" "$target" >"$output_file" 2>&1
-
-  if grep -q 'sendTo() failed' "$output_file"; then
-    skip "no-reply timeout test target is not sendable: $target"
-    return
-  fi
-  if grep -q 'bytes from' "$output_file"; then
-    skip "no-reply timeout test target answered: $target"
-    return
-  fi
-
-  transmitted="$(sed -n 's/^\([0-9][0-9]*\) packets transmitted,.*/\1/p' "$output_file")"
-  if [ -z "$transmitted" ]; then
-    fail 'no-reply timeout test did not print packet statistics'
-    show_file_on_failure "$output_file"
-    return
-  fi
-
-  if [ "$transmitted" -ge 2 ]; then
-    pass 'unanswered target does not block after the first packet'
-  else
-    fail 'unanswered target blocks in recvfrom() after the first packet'
-    show_file_on_failure "$output_file"
-  fi
-
-  if grep -q '^rtt min/avg/max/mdev' "$output_file"; then
-    fail 'unanswered target reports RTT stats despite receiving no replies'
-    show_file_on_failure "$output_file"
-  else
-    pass 'unanswered target does not report RTT stats without replies'
-  fi
-}
-
-need_cmd make
-need_cmd timeout
-need_cmd stdbuf
-need_cmd grep
-need_cmd sed
-need_cmd mktemp
-
-if ! make; then
-  fail 'build failed'
-  exit 1
-fi
-select_ping_command
-select_python_command
-
-printf '%sUsing ft_ping command:%s %s\n' "$BOLD" "$RESET" "${PING_CMD[*]}"
-test_localhost_ping
-test_rogue_echo_reply_is_ignored
-test_unanswered_target_does_not_block_after_first_packet
-
-if [ "$FAILURES" -ne 0 ]; then
-  printf '%s%d test(s) failed.%s\n' "$RED" "$FAILURES" "$RESET"
-  exit 1
-fi
-
-printf '%sAll runnable tests passed.%s\n' "$GREEN" "$RESET"

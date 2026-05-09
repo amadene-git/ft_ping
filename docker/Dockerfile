@@ -19,6 +19,7 @@ RUN apt-get update \
     libcap2-bin \
     hping3 \
     python3 \
+    valgrind \
     wget
 
 RUN groupadd -g ${GID} ${USER} \
