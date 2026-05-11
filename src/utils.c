@@ -31,7 +31,9 @@ int ft_printf(const char* format, ...) {
   len = vsnprintf(buffer, sizeof(buffer), format, args);
   va_end(args);
 
-  if (len < 0) return (-1);
+  if (len < 0) {
+    return -1;
+  }
 
   write(1, buffer, len);
 
@@ -41,14 +43,20 @@ int ft_printf(const char* format, ...) {
 void printFirstLog(t_ping* ping) {
   static const size_t ICMP_HEADER_SIZE = sizeof(struct icmphdr);
 
-  ft_printf("FT_PING %s (%s): %zu data bytes\n",
+  ft_printf("FT_PING %s (%s): %zu data bytes",
             ping->rawSocket->_hostname,
             &ping->rawSocket->_ipAddress[0],
             ping->packetSize - ICMP_HEADER_SIZE);
+  if (ping->verbose) {
+    uint16_t id = (uint16_t)getpid();
+    ft_printf(", id 0x%04X = %d\n", id, id);
+  } else {
+    ft_printf("\n");
+  }
 }
 
 void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
-  t_microsec rtt = timevalToUs(((t_RTT*)(*ping->stats.rtts)->data)->result);
+  t_microsec rtt = timevalToUs(ping->stats.currentRTT.result);
 
   ft_printf("%zd bytes from %s: icmp_seq=%ld ttl=%hu time=%lu.%03lu ms\n",
             nbBytesRecv,
@@ -60,26 +68,30 @@ void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl) {
 }
 
 void printStats(t_ping* ping) {
-  ft_printf("\n--- %s ping statistics ---\n", ping->rawSocket->_hostname);
+  ft_printf("--- %s ping statistics ---\n", ping->rawSocket->_hostname);
   ft_printf("%lu packets transmitted, ", ping->stats.nbSend);
-  ft_printf("%lu received, ", ping->stats.nbRecv);
-  ft_printf("%lu%% packet loss, ", computeLossPercent(ping->stats));
-  ft_printf("time %lums\n", getProgramDuration(&ping->stats.progDuration, ping));
-  if (ping->stats.nbRecv == 0 || *ping->stats.rtts == NULL) {
+  ft_printf("%lu packets received, ", ping->stats.nbRecv);
+  ft_printf("%lu%% packet loss\n", computeLossPercent(ping->stats));
+  // ft_printf("time %lums\n", getProgramDuration(&ping->stats.progDuration, ping));
+  if (ping->stats.nbRecv == 0) {
     return;
   }
-  ft_printf("round-trip min/avg/max/mdev = ");
 
-  t_microsec min = getMinRtt(*ping->stats.rtts);
-  ft_printf("%lu.%lu/", min / 1000, min % 1000);
+  {
+    ft_printf("round-trip min/avg/max/stddev = ");
 
-  t_rtt_stats meanAndDev = welfordAlgo(*ping->stats.rtts);
-  ft_printf("%lu.%lu/", meanAndDev.avg / 1000, meanAndDev.avg % 1000);
+    t_microsec min = ping->stats.minRtt;
+    ft_printf("%lu.%03lu/", min / 1000, min % 1000);
 
-  t_microsec max = getMaxRtt(*ping->stats.rtts);
-  ft_printf("%lu.%lu/", max / 1000, max % 1000);
+    t_microsec mean = ping->stats.meanRtt;
+    ft_printf("%lu.%03lu/", mean / 1000, mean % 1000);
 
-  ft_printf("%lu.%lums\n", meanAndDev.mdev / 1000, meanAndDev.mdev % 1000);
+    t_microsec max = ping->stats.maxRtt;
+    ft_printf("%lu.%03lu/", max / 1000, max % 1000);
+
+    t_microsec stdDev = getStdDev(&ping->stats);
+    ft_printf("%lu.%03lu ms\n", stdDev / 1000, stdDev % 1000);
+  }
 }
 
 char* ft_strdup(const char* s, t_ping* ping) {

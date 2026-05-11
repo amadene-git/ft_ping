@@ -25,7 +25,6 @@ void initializeSignal() {
   sigaction(SIGINT, &sa, NULL);
 }
 
-
 int main(const int ac, const char** av) {
   t_ping ping;
   ping.garbage = NULL;
@@ -38,11 +37,9 @@ int main(const int ac, const char** av) {
   ping.packetSize = sizeof(struct icmphdr) + FT_PING_PAYLOAD_SIZE;
   ping.seqnum = 0;
   ping.packet = galloc(ping.packetSize, &ping);
-  ping.stats.nbSend = 0;
-  ping.stats.nbRecv = 0;
-  ping.stats.progDuration = initRTT(&ping);
-  ping.stats.rtts = galloc(sizeof(t_list*), &ping);
-  *(ping.stats.rtts) = NULL;
+
+  initializeStats(&ping.stats);
+
   uint32_t timeToSleep = 1;
 
   printFirstLog(&ping);
@@ -60,9 +57,6 @@ int main(const int ac, const char** av) {
       }
     }
     if (nbBytesRecv == 0) {
-      if (*ping.stats.rtts) {
-        *ping.stats.rtts = (*ping.stats.rtts)->next;
-      }
       ++ping.seqnum;
       continue;
     }

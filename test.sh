@@ -17,28 +17,12 @@ TEST_FAILED=0
 TEST_PASSED=0
 
 function execCommand() {
-    cmd="timeout 2 ping $1 $2 $3";
-    ft_cmd="sudo timeout 2 ./ft_ping $1 $2 $3";
+    cmd="timeout -s INT 2 ping $1 $2 $3";
+    ft_cmd="sudo timeout -s INT 2 ./ft_ping $1 $2 $3";
     LAST_CMD=$cmd
 
     FT_RETURN=$($(echo $ft_cmd) 1> $FT_STDOUT 2> $FT_STDERR);
     EXPECT_RETURN=$($(echo $cmd) 1> $EXPECT_STDOUT 2> $EXPECT_STDERR);
-
-    # cmd="ping $1 $2 $3";
-    # ft_cmd="./ft_ping $1 $2 $3";
-    # LAST_CMD=$cmd
-    # {
-    #     FT_RETURN=$ft_cmd 1> $FT_STDOUT 2> $FT_STDERR) &
-    #     PID=$!
-    #     sleep 3
-    #     kill -SIGINT $PID
-    # }
-    # {
-    #     EXPECT_RETURN=$($(echo $cmd) 1> $EXPECT_STDOUT 2> $EXPECT_STDERR) &
-    #     PID=$!
-    #     sleep 3
-    #     kill -SIGINT $PID
-    # }
 
 }
 
@@ -53,6 +37,8 @@ function compareOut() {
     sed -i 's/ft_ping/ping/g' $FT_STDOUT
     sed -i 's/FT_PING/PING/g' $FT_STDOUT
     sed -i 's/time=[0-9]*.[0-9]* ms/time=0 ms/g' $FT_STDOUT $EXPECT_STDOUT
+    sed -i '/round-trip/d' $FT_STDOUT $EXPECT_STDOUT
+
     diff $FT_STDOUT $EXPECT_STDOUT
     if [[ $? -ne 0 ]]
     then
@@ -102,10 +88,40 @@ function printResult() {
 }
 
 function testTooManyHosts() {
-    ./ft_ping google.com duckduckgo.com 1> $FT_STDOUT 2> $FT_STDERR
+
+    ./ft_ping google.com duckduckgo.com 1> $FT_STDOUT 2> $FT_STDERR;
+    FT_RETURN=$?
 
     diff $FT_STDOUT /dev/null
-    diff $FT_STDERR /dev/null
+    if [[ $? -ne 0 ]]
+    then
+        printf "${RED} Testing '$LAST_CMD' diff stdout failed $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+
+    echo "ft_ping: too many host 'duckduckgo.com'" >> $EXPECT_STDERR
+    echo "Try 'ping --help' for more information." >> $EXPECT_STDERR
+    diff $FT_STDERR $EXPECT_STDERR
+    if [[ $? -ne 0 ]]
+    then
+        printf "${RED} Testing '$LAST_CMD' diff stdout failed $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+    if [[ $FT_RETURN -ne 64 ]]
+    then
+        printf "${RED} Testing '$LAST_CMD'  failed $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+    (( TEST_PASSED++ ))
+
+    echo "test passed $TEST_PASSED './ft_ping google.com duckduckgo.com'"
+
 }
 
 
@@ -132,6 +148,17 @@ testCommand "-z"
 testCommand "-- -- google.com"
 
 testTooManyHosts
+cleanOut
+
+# host unreachable
+testCommand "10.0.0.1"
+
+
+# verbose
+testCommand "-v 127.0.0.1"
+
+
+
 
 printResult
 

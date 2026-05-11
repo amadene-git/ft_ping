@@ -73,7 +73,9 @@ void icmpChecksum(const void* packet, int len) {
     sum += (uint16_t)last << 8;
   }
 
-  while (sum >> 16) sum = (sum & 0xFFFF) + (sum >> 16);
+  while (sum >> 16) {
+    sum = (sum & 0xFFFF) + (sum >> 16);
+  }
 
   struct icmphdr* header = (struct icmphdr*)packet;
   header->checksum = (uint16_t)(~sum);
@@ -84,10 +86,8 @@ void sendPacket(t_ping* ping) {
   buildIcmpHeader(ping->packet, ping->seqnum);
   icmpChecksum(ping->packet, ping->packetSize);
 
-  t_RTT* rtt = galloc(sizeof(t_RTT), ping);
-  listPushFront(ping->stats.rtts, listNewElem(rtt, ping), ping);
+  initializeCurrentRtt(ping);
 
-  *rtt = initRTT(ping);
   if ((size_t)sendto(ping->sockfd,
                      ping->packet,
                      ping->packetSize,
@@ -163,8 +163,8 @@ ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
 
     if (isExpectedEchoReply(ping, recvBuffer, nbBytesRecv, &recvAddr, ttl)) {
       size_t ipHeaderLen = ((const struct iphdr*)recvBuffer)->ihl * 4;
-      computeRTT((t_RTT*)((*ping->stats.rtts)->data), ping);
-      ++ping->stats.nbRecv;
+      computeCurrentRtt(ping);
+      updateStats(&(ping->stats));
       return nbBytesRecv - (ssize_t)ipHeaderLen;
     }
   }

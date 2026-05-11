@@ -1,19 +1,17 @@
 #include <netUtils.h>
 #include <utils.h>
 
-t_RTT initRTT(t_ping *ping) {
-  t_RTT rtt = {0};
-  if (gettimeofday(&rtt.begin, NULL) == -1) {
+void initializeCurrentRtt(t_ping* ping) {
+  if (gettimeofday(&ping->stats.currentRTT.begin, NULL) == -1) {
     exitProgram("gettimeofday() failed", errno, true, ping);
   }
-  return rtt;
 }
 
-void computeRTT(t_RTT* rtt, t_ping *ping) {
-  if (gettimeofday(&rtt->end, NULL) == -1) {
+void computeCurrentRtt(t_ping* ping) {
+  if (gettimeofday(&ping->stats.currentRTT.end, NULL) == -1) {
     exitProgram("gettimeofday() failed", errno, true, ping);
   }
-  timersub(&rtt->end, &rtt->begin, &rtt->result);
+  timersub(&ping->stats.currentRTT.end, &ping->stats.currentRTT.begin, &ping->stats.currentRTT.result);
 }
 
 t_millisec timevalToMs(struct timeval tv) {
