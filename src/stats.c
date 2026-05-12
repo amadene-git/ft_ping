@@ -4,6 +4,9 @@
 #include <math.h>
 
 uint64_t computeLossPercent(t_stats stats) {
+  if (stats.nbSend == 0) {
+    return 0;
+  }
   return ((stats.nbSend - stats.nbRecv) * 100) / stats.nbSend;
 }
 
