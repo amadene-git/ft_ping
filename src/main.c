@@ -29,6 +29,7 @@ int main(const int ac, const char** av) {
   t_ping ping;
   ping.garbage = NULL;
   ping.sockfd = -1;
+  ping.verbose = false;
 
   const char* hostname = parseCommandLine(ac, av, &ping);
   initializeSignal();

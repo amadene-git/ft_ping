@@ -36,7 +36,7 @@ int resolveDNS(t_ping* ping) {
     exitProgram(buffer, 2, false, ping);
   }
   ping->rawSocket->_sockAddr = *(struct sockaddr_in*)result->ai_addr;
-  free(result);
+  freeaddrinfo(result);
 
   char str_ip[16] = {0};
   inet_ntop(AF_INET, &ping->rawSocket->_sockAddr.sin_addr.s_addr, &str_ip[0], 100);

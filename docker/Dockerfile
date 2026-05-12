@@ -35,4 +35,4 @@ RUN wget -O /tmp/pkg.deb http://ftp.debian.org/debian/pool/main/i/inetutils/inet
 
 USER ${USER}
 
-CMD echo "ft_ping container started" && zsh
+CMD ["echo", "ft_ping container started"]

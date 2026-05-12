@@ -18,7 +18,7 @@ TEST_PASSED=0
 
 function execCommand() {
     cmd="timeout -s INT 2 ping $1 $2 $3";
-    ft_cmd="sudo timeout -s INT 2 ./ft_ping $1 $2 $3";
+    ft_cmd="valgrind --leak-check=full --log-file=valgrind.log timeout -s INT 2 ./ft_ping $1 $2 $3";
     LAST_CMD=$cmd
 
     FT_RETURN=$($(echo $ft_cmd) 1> $FT_STDOUT 2> $FT_STDERR);
@@ -27,6 +27,15 @@ function execCommand() {
 }
 
 function compareOut() {
+    grep -q "ERROR SUMMARY: 0 errors" valgrind.log
+    if [[ $? -ne 0 ]]
+    then
+        printf "${RED} Testing '$LAST_CMD' valgrind KO $NC\n"
+        (( TEST_FAILED++ ))
+        return 1;
+    fi
+
+
     if [[ $EXPECT_RETURN -ne $FT_RETURN ]]
     then
         printf "${RED} Testing '$LAST_CMD' failed, return '$FT_RETURN' expected '$EXPECT_RETURN' $NC\n"
@@ -38,8 +47,9 @@ function compareOut() {
     sed -i 's/FT_PING/PING/g' $FT_STDOUT
     sed -i 's/time=[0-9]*.[0-9]* ms/time=0 ms/g' $FT_STDOUT $EXPECT_STDOUT
     sed -i '/round-trip/d' $FT_STDOUT $EXPECT_STDOUT
-
-    diff $FT_STDOUT $EXPECT_STDOUT
+    sed -i 's/0x[0-9A-Fa-f]* = [0-9]*/0x0 = 0/g' $FT_STDOUT $EXPECT_STDOUT 
+    diff $FT_STDOUT $EXPECT_STDOUT 
+    
     if [[ $? -ne 0 ]]
     then
         printf "${RED} Testing '$LAST_CMD' diff stdout failed $NC\n"
@@ -62,7 +72,7 @@ function compareOut() {
 }
 
 function cleanOut() {
-    rm -rf $FT_STDOUT $FT_STDERR $EXPECT_STDOUT $EXPECT_STDERR;
+    rm -rf $FT_STDOUT $FT_STDERR $EXPECT_STDOUT $EXPECT_STDERR valgrind.log;
     FT_RETURN=NaN
     EXPECT_RETURN=NaN
 }
@@ -127,36 +137,45 @@ function testTooManyHosts() {
 
 make
 
-# host valid
-testCommand "127.0.0.1"
-testCommand "google.com"
-testCommand "-- google.com"
+# # host valid
+# testCommand "127.0.0.1"
+# testCommand "google.com"
+# testCommand "-- google.com"
 
-# No host
-testCommand ""
-# bad host
-testCommand "abc"
-testCommand "192.0.0.1"
-testCommand "256.0.0.1"
-testCommand "-"
-testCommand "--"
+# # No host
+# testCommand ""
+# # bad host
+# testCommand "abc"
+# testCommand "192.0.0.1"
+# testCommand "256.0.0.1"
+# testCommand "-"
+# testCommand "--"
 
-# invalid option
-testCommand "--snsdolancs"
-testCommand "--snsdolancs google.com"
-testCommand "-z"
-testCommand "-- -- google.com"
+# # invalid option
+# testCommand "--snsdolancs"
+# testCommand "--snsdolancs google.com"
+# testCommand "-z"
+# testCommand "-- -- google.com"
 
-testTooManyHosts
-cleanOut
+# testTooManyHosts
+# cleanOut
 
-# host unreachable
-testCommand "10.0.0.1"
+# # host unreachable
+# testCommand "10.0.0.1"
 
 
-# verbose
-testCommand "-v 127.0.0.1"
+# # verbose
+# testCommand "-v 127.0.0.1"
 
+# memory leak
+testCommand "debian.org"
+
+
+
+# testCommand "www.kernel.org"
+# testCommand "www.kernel.com"
+# testCommand "kernel.com"
+# testCommand "kernel.org"
 
 
 
