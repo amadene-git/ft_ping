@@ -140,32 +140,143 @@ static int isExpectedEchoReply(t_ping* ping,
   return 1;
 }
 
+static void dumpVerboseIcmpError(const struct iphdr* oIp, const struct icmphdr* oIcmp) {
+  const uint16_t* p = (const uint16_t*)oIp;
+  ft_printf("IP Hdr Dump:\n ");
+  for (int i = 0; i < 10; i++) ft_printf(" %04x", ntohs(p[i]));
+  ft_printf(
+      "\n"
+      "Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src       Dst     Data\n");
+  ft_printf(" %1x  %1x  %02x %04x %04x   %1x %04x  %02x  %02x %04x %u.%u.%u.%u  %u.%u.%u.%u\n",
+            oIp->version,
+            oIp->ihl,
+            oIp->tos,
+            ntohs(oIp->tot_len),
+            ntohs(oIp->id),
+            (ntohs(oIp->frag_off) >> 13) & 0x7,
+            ntohs(oIp->frag_off) & 0x1FFF,
+            oIp->ttl,
+            oIp->protocol,
+            ntohs(oIp->check),
+            (ntohl(oIp->saddr) >> 24) & 0xff,
+            (ntohl(oIp->saddr) >> 16) & 0xff,
+            (ntohl(oIp->saddr) >> 8) & 0xff,
+            ntohl(oIp->saddr) & 0xff,
+            (ntohl(oIp->daddr) >> 24) & 0xff,
+            (ntohl(oIp->daddr) >> 16) & 0xff,
+            (ntohl(oIp->daddr) >> 8) & 0xff,
+            ntohl(oIp->daddr) & 0xff);
+  ft_printf("ICMP: type %u, code %u, size %lu, id 0x%04x, seq 0x%04x\n",
+            oIcmp->type,
+            oIcmp->code,
+            sizeof(struct icmphdr) + 56UL,
+            ntohs(oIcmp->un.echo.id),
+            ntohs(oIcmp->un.echo.sequence));
+}
+
+static const char* icmpErrorString(uint8_t type, uint8_t code) {
+  static char fallback[36];
+  static const char* unreach[16] = {
+      "Destination Net Unreachable",       // 0
+      "Destination Host Unreachable",      // 1
+      "Destination Protocol Unreachable",  // 2
+      "Destination Port Unreachable",      // 3
+      "Fragmentation needed and DF set",   // 4
+      "Source Route Failed",               // 5
+      "Destination Net Unknown",           // 6
+      "Destination Host Unknown",          // 7
+      "Source Host Isolated",              // 8
+      NULL,
+      NULL,
+      NULL,
+      NULL,               // 9–12
+      "Packet Filtered",  // 13
+      NULL,
+      NULL,  // 14–15
+  };
+
+  static const char* redirect[] = {
+      "Redirect Network",
+      "Redirect Host",
+      "Redirect Type of Service and Network",
+      "Redirect Type of Service and Host",
+  };
+
+  if (type == ICMP_DEST_UNREACH) {
+    if (code < 16 && unreach[code]) {
+      return unreach[code];
+    }
+    snprintf(fallback, sizeof(fallback), "Dest Unreachable, Unknown Code: %u", code);
+    return fallback;
+  }
+
+  if (type == ICMP_REDIRECT) {
+    if (code < 4) {
+      return redirect[code];
+    }
+    snprintf(fallback, sizeof(fallback), "Redirect, Unknown Code: %u", code);
+    return fallback;
+  }
+  if (type == ICMP_TIME_EXCEEDED) {
+    return code ? "Frag reassembly time exceeded" : "Time to live exceeded";
+  }
+  if (type == ICMP_PARAMETERPROB) {
+    return "Parameter problem";
+  }
+  if (type == 9) {
+    return "Router Advertisement";
+  }
+  if (type == 10) {
+    return "Router Discovery";
+  }
+
+  snprintf(fallback, sizeof(fallback), "Bad ICMP type: %u", type);
+  return fallback;
+}
+
+static int printIcmpErrorIfForUs(t_ping* ping, const uint8_t* buf, ssize_t n) {
+  const struct iphdr* ip = (const struct iphdr*)buf;
+  size_t ipLen = ip->ihl * 4;
+  const struct icmphdr* icmp = (const struct icmphdr*)(buf + ipLen);
+
+  if ((size_t)n < ipLen + 8 + sizeof(struct iphdr) + 8) {
+    return 0;
+  }
+
+  const struct iphdr* oIp = (const struct iphdr*)((uint8_t*)icmp + 8);
+  const struct icmphdr* oIcmp = (const struct icmphdr*)((uint8_t*)oIp + oIp->ihl * 4);
+
+  if (icmp->type == ICMP_ECHOREPLY || icmp->type == ICMP_ECHO) {
+    return 0;
+  }
+
+  char src[INET_ADDRSTRLEN];
+  inet_ntop(AF_INET, &ip->saddr, src, sizeof(src));
+  ft_printf("%zd bytes from %s: %s\n", (ssize_t)(n - (ssize_t)ipLen), src, icmpErrorString(icmp->type, icmp->code));
+
+  if (ping->verbose) dumpVerboseIcmpError(oIp, oIcmp);
+  return 1;
+}
+
 ssize_t receivePacket(t_ping* ping, uint8_t* ttl) {
-  uint8_t recvBuffer[IP_MAXPACKET];
-
+  uint8_t buf[IP_MAXPACKET];
   while (1) {
-    struct sockaddr_in recvAddr;
-    socklen_t recvLen = sizeof(recvAddr);
-    bzero(recvBuffer, sizeof(recvBuffer));
-    bzero(&recvAddr, sizeof(recvAddr));
-
-    ssize_t nbBytesRecv =
-        recvfrom(ping->sockfd, recvBuffer, sizeof(recvBuffer), 0, (struct sockaddr*)(&recvAddr), &recvLen);
-    if (nbBytesRecv == 0) {
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    ssize_t n = recvfrom(ping->sockfd, buf, sizeof(buf), 0, (struct sockaddr*)&addr, &len);
+    if (n == 0) {
       exitProgram("Receive no ping reply", EXIT_FAILURE, false, ping);
     }
-    if (nbBytesRecv == -1) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        return 0;
-      }
-      return -1;
+    if (n == -1) {
+      return (errno == EAGAIN || errno == EWOULDBLOCK) ? 0 : -1;
     }
 
-    if (isExpectedEchoReply(ping, recvBuffer, nbBytesRecv, &recvAddr, ttl)) {
-      size_t ipHeaderLen = ((const struct iphdr*)recvBuffer)->ihl * 4;
+    if (isExpectedEchoReply(ping, buf, n, &addr, ttl)) {
+      size_t ipLen = ((struct iphdr*)buf)->ihl * 4;
       computeCurrentRtt(ping);
-      updateStats(&(ping->stats));
-      return nbBytesRecv - (ssize_t)ipHeaderLen;
+      updateStats(&ping->stats);
+      return n - (ssize_t)ipLen;
     }
+    printIcmpErrorIfForUs(ping, buf, n);
   }
 }

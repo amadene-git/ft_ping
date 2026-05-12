@@ -8,6 +8,7 @@ EXPECT_STDOUT=expect_out.log
 EXPECT_STDERR=expect_err.log
 EXPECT_RETURN=-1
 LAST_CMD=""
+VALGRIND_LOG=valgrind.log
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -17,8 +18,10 @@ TEST_FAILED=0
 TEST_PASSED=0
 
 function execCommand() {
+    echo "run test $(($TEST_FAILED + $TEST_PASSED)) '$LAST_CMD' 🥁"
+
     cmd="timeout -s INT 2 ping $1 $2 $3";
-    ft_cmd="valgrind --leak-check=full --log-file=valgrind.log timeout -s INT 2 ./ft_ping $1 $2 $3";
+    ft_cmd="valgrind --leak-check=full --log-file=$VALGRIND_LOG timeout -s INT 2 ./ft_ping $1 $2 $3";
     LAST_CMD=$cmd
 
     FT_RETURN=$($(echo $ft_cmd) 1> $FT_STDOUT 2> $FT_STDERR);
@@ -27,12 +30,16 @@ function execCommand() {
 }
 
 function compareOut() {
-    grep -q "ERROR SUMMARY: 0 errors" valgrind.log
-    if [[ $? -ne 0 ]]
+
+    if [ -f $VALGRIND_LOG ]
     then
-        printf "${RED} Testing '$LAST_CMD' valgrind KO $NC\n"
-        (( TEST_FAILED++ ))
-        return 1;
+        grep -q "ERROR SUMMARY: 0 errors" $VALGRIND_LOG > /dev/null
+        if [[ $? -ne 0 ]]
+        then
+            printf "${RED} Testing '$LAST_CMD' valgrind KO $NC\n"
+            (( TEST_FAILED++ ))
+            return 1;
+        fi
     fi
 
 
@@ -68,11 +75,17 @@ function compareOut() {
         return 1;
     fi
 
+
+    printf "${GREEN} Test passed $(($TEST_FAILED + $TEST_PASSED)) '$LAST_CMD' $NC\n"
+
+
     (( TEST_PASSED++ ))
+
+
 }
 
 function cleanOut() {
-    rm -rf $FT_STDOUT $FT_STDERR $EXPECT_STDOUT $EXPECT_STDERR valgrind.log;
+    rm -rf $FT_STDOUT $FT_STDERR $EXPECT_STDOUT $EXPECT_STDERR $VALGRIND_LOG;
     FT_RETURN=NaN
     EXPECT_RETURN=NaN
 }
@@ -81,8 +94,6 @@ function testCommand() {
     execCommand $1
     compareOut
     cleanOut
-    echo "test passed $TEST_PASSED '$LAST_CMD'"
-    echo 🥁
 }
 
 function printResult() {
@@ -98,6 +109,8 @@ function printResult() {
 }
 
 function testTooManyHosts() {
+    LAST_CMD="ping google.com duckduckgo.com"
+    echo "run test $(($TEST_FAILED + $TEST_PASSED)) '$LAST_CMD' 🥁"
 
     ./ft_ping google.com duckduckgo.com 1> $FT_STDOUT 2> $FT_STDERR;
     FT_RETURN=$?
@@ -130,52 +143,123 @@ function testTooManyHosts() {
 
     (( TEST_PASSED++ ))
 
-    echo "test passed $TEST_PASSED './ft_ping google.com duckduckgo.com'"
+    echo "test passed $(($TEST_FAILED + $TEST_PASSED)) '$LAST_CMD'"
 
 }
 
+function testIcmpPacketTypeCode() {
+    ICMP_PACKET_TYPE=$1
+    ICMP_PACKET_CODE=$2
+    LAST_CMD="testIcmpPacketTypeCode type $1 code $2"
+    echo
+    echo "run test $(($TEST_FAILED + $TEST_PASSED)) '$LAST_CMD' 🥁"
+
+
+cat << EOF > forge.py
+#!/usr/bin/env python3
+from scapy.all import IP, ICMP, send
+import sys
+import time
+
+ft_pid, target, seq = int(sys.argv[1]), sys.argv[2], int(sys.argv[3])
+orig = IP(src="127.0.0.1", dst=target, proto=1) / ICMP(type=8, code=0, id=ft_pid & 0xffff, seq=seq)
+send(IP(dst="127.0.0.1") / ICMP(type=$ICMP_PACKET_TYPE, code=$ICMP_PACKET_CODE) / bytes(orig)[:28])
+
+EOF
+
+
+    ./ft_ping 127.0.0.1 1> $FT_STDOUT 2> $FT_STDERR & FT_PID=$!
+    python3 forge.py $FT_PID 127.0.0.1 0 1> /dev/null;
+    sleep 2;
+    kill -s INT $FT_PID
+    
+    ping -n 127.0.0.1 1> $EXPECT_STDOUT 2> $EXPECT_STDERR & PING_PID=$!
+    python3 forge.py $PING_PID 127.0.0.1 0 1> /dev/null;
+    sleep 2;
+    kill -s INT $PING_PID
+    
+    rm -rf forge.py
+
+    compareOut
+    cleanOut
+}
 
 make
 
-# # host valid
-# testCommand "127.0.0.1"
-# testCommand "google.com"
-# testCommand "-- google.com"
+# host valid
+testCommand "127.0.0.1"
+testCommand "google.com"
+testCommand "-- google.com"
 
-# # No host
-# testCommand ""
-# # bad host
-# testCommand "abc"
-# testCommand "192.0.0.1"
-# testCommand "256.0.0.1"
-# testCommand "-"
-# testCommand "--"
+# No host
+testCommand ""
+# bad host
+testCommand "abc"
+testCommand "192.0.0.1"
+testCommand "256.0.0.1"
+testCommand "-"
+testCommand "--"
 
-# # invalid option
-# testCommand "--snsdolancs"
-# testCommand "--snsdolancs google.com"
-# testCommand "-z"
-# testCommand "-- -- google.com"
-
-# testTooManyHosts
-# cleanOut
-
-# # host unreachable
-# testCommand "10.0.0.1"
+# invalid option
+testCommand "--snsdolancs"
+testCommand "--snsdolancs google.com"
+testCommand "-z"
+testCommand "-- -- google.com"
 
 
-# # verbose
-# testCommand "-v 127.0.0.1"
+# test too many host in arg
+testTooManyHosts
+cleanOut
+
+# host unreachable
+testCommand "10.0.0.1"
+
+
+# verbose
+testCommand "-v 127.0.0.1"
 
 # memory leak
 testCommand "debian.org"
 
 
+# test icmp type code
+testIcmpPacketTypeCode 3 0     # Net Unreachable
+testIcmpPacketTypeCode 3 1     # Host Unreachable
+testIcmpPacketTypeCode 3 2     # Protocol Unreachable
+testIcmpPacketTypeCode 3 3     # Port Unreachable
+testIcmpPacketTypeCode 3 4     # Fragmentation needed
+testIcmpPacketTypeCode 3 9     # Net Prohibited
+testIcmpPacketTypeCode 3 10    # Host Prohibited
+testIcmpPacketTypeCode 3 13    # Packet filtered
 
+testIcmpPacketTypeCode 11 0    # TTL exceeded
+testIcmpPacketTypeCode 11 1    # Frag reassembly time
+
+testIcmpPacketTypeCode 5 0     # Redirect Network
+testIcmpPacketTypeCode 5 1     # Redirect Host
+testIcmpPacketTypeCode 5 2     # Redirect TOS & Network
+testIcmpPacketTypeCode 5 3     # Redirect TOS & Host
+
+
+# invalid type code
+testIcmpPacketTypeCode 255 0    # cas 3 : fallback "Bad ICMP type: 255"
+testIcmpPacketTypeCode 3 99     # cas 4 : "Dest Unreachable, Unknown Code: 99"
+testIcmpPacketTypeCode 5 16     # Redirect TOS & Host
+
+
+
+
+
+
+# valgrind errors + dns return conversion
 # testCommand "www.kernel.org"
 # testCommand "www.kernel.com"
 # testCommand "kernel.com"
 # testCommand "kernel.org"
+
+# unreachable addr
+# ping 192.0.2.1     # TEST-NET-1 (RFC 5737)
+# ping 240.0.0.1     # Class E réservée
 
 
 

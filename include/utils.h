@@ -13,6 +13,7 @@ void exitProgram(const char* message, int code, bool hasErrno, t_ping* ping);
 void printFirstLog(t_ping* ping);
 void printLog(t_ping* ping, ssize_t nbBytesRecv, uint8_t ttl);
 void printStats(t_ping* ping);
+int ft_printf(const char* format, ...);
 
 char* ft_strdup(const char* s, t_ping* ping);
 const char* parseCommandLine(const int ac, const char** av, t_ping* ping);

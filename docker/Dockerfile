@@ -19,6 +19,8 @@ RUN apt-get update \
     libcap2-bin \
     hping3 \
     python3 \
+    python3-scapy \
+    tcpdump \
     valgrind \
     wget
 
